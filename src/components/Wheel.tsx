@@ -1,0 +1,73 @@
+import type { Activity } from '../data/activities';
+
+interface WheelProps {
+  candidates: Activity[];
+  rotation: number;
+  duration: number;
+  isSpinning: boolean;
+  onSpin: () => void;
+}
+
+const colors = ['#ffd978', '#ffc8d4', '#bfd8b8', '#bfddf5', '#f4c8a8', '#d6c7e8', '#f8e7a9', '#b9ddd0'];
+
+function pointOnCircle(cx: number, cy: number, radius: number, angle: number) {
+  const radians = (angle * Math.PI) / 180;
+  return { x: cx + radius * Math.cos(radians), y: cy + radius * Math.sin(radians) };
+}
+
+function sectorPath(index: number, total: number) {
+  const angle = 360 / total;
+  const start = pointOnCircle(160, 160, 147, index * angle);
+  const end = pointOnCircle(160, 160, 147, (index + 1) * angle);
+  return `M 160 160 L ${start.x} ${start.y} A 147 147 0 ${angle > 180 ? 1 : 0} 1 ${end.x} ${end.y} Z`;
+}
+
+export function Wheel({ candidates, rotation, duration, isSpinning, onSpin }: WheelProps) {
+  return (
+    <section className="wheel-stage" aria-label="转盘区域">
+      <span className="wheel-scribble wheel-scribble-left" aria-hidden="true">✦</span>
+      <span className="wheel-scribble wheel-scribble-right" aria-hidden="true">〰</span>
+      <div className="wheel-pointer" aria-hidden="true"><span>🐾</span></div>
+      <div className="wheel-frame">
+        {candidates.length > 0 ? (
+          <svg
+            className="wheel-svg"
+            viewBox="0 0 320 320"
+            role="img"
+            aria-label="广州周末随机转盘"
+            data-candidate-ids={candidates.map((item) => item.id).join(',')}
+            style={{ transform: `rotate(${rotation}deg)`, transitionDuration: `${duration}ms` }}
+          >
+            <circle cx="160" cy="160" r="154" fill="#fffdf8" stroke="#33302d" strokeWidth="5" />
+            {candidates.map((candidate, index) => {
+              const angle = 360 / candidates.length;
+              const center = index * angle + angle / 2;
+              return (
+                <g key={candidate.id}>
+                  <path d={sectorPath(index, candidates.length)} fill={colors[index % colors.length]} stroke="#33302d" strokeWidth="2.2" />
+                  <g transform={`rotate(${center} 160 160)`}>
+                    <text x="258" y="151" textAnchor="middle" fontSize="17" transform={`rotate(90 258 151)`}>{candidate.emoji}</text>
+                    <text x="230" y="169" textAnchor="middle" fontSize="10.5" fontWeight="700" transform={`rotate(90 230 169)`}>{candidate.shortName}</text>
+                  </g>
+                </g>
+              );
+            })}
+            <circle cx="160" cy="160" r="45" fill="#fff9f1" stroke="#33302d" strokeWidth="4" />
+          </svg>
+        ) : (
+          <div className="wheel-placeholder" aria-hidden="true" />
+        )}
+        <button
+          className="spin-button"
+          type="button"
+          aria-label={isSpinning ? '命运选择中……' : '开转！'}
+          disabled={isSpinning || candidates.length === 0}
+          onClick={onSpin}
+        >
+          <span>{isSpinning ? '转呀' : '开转!'}</span>
+          <small>{isSpinning ? '命运选择中…' : 'PUSH'}</small>
+        </button>
+      </div>
+    </section>
+  );
+}
