@@ -86,7 +86,7 @@ export default function App() {
         <div className="wheel-title"><span className="step-dot">2</span><div><h2>交给命运吧！</h2><p>{filteredActivities.length > 0 ? `小狗从 ${filteredActivities.length} 个好去处里挑了 8 个` : '这个要求有点难倒小狗了……'}</p></div></div>
         {filteredActivities.length > 0 ? (
           <>
-            <Wheel candidates={wheel.candidates} rotation={wheel.rotation} duration={wheel.duration} isSpinning={wheel.isSpinning} onSpin={wheel.spin} />
+            <Wheel candidates={wheel.candidates} rotation={wheel.rotation} duration={wheel.duration} selectedIndex={wheel.selectedIndex} isSpinning={wheel.isSpinning} onSpin={wheel.spin} />
             <div className={`wheel-dog ${wheel.isSpinning ? 'is-spinning' : ''}`}><DogMascot state={dogState} alt={wheel.isSpinning ? '正在晕乎乎转圈的原创线稿小狗' : '陪你决定周末去处的原创线稿小狗'} /></div>
             <p className="spin-hint">{wheel.isSpinning ? '小狗正在努力读取命运…' : '按下去，就不许纠结啦'}</p>
           </>

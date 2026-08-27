@@ -10,6 +10,7 @@ test('renders the real candidate labels and disables the spin action', () => {
       candidates={candidates}
       rotation={1180}
       duration={3800}
+      selectedIndex={3}
       isSpinning
       onSpin={vi.fn()}
     />,
@@ -20,5 +21,7 @@ test('renders the real candidate labels and disables the spin action', () => {
     candidates.map((item) => item.id).join(','),
   );
   expect(screen.getByText(candidates[0].shortName)).toBeInTheDocument();
+  expect(screen.getByLabelText('广州周末随机转盘')).toHaveAttribute('data-selected-index', '3');
+  expect(screen.getAllByTestId('wheel-label').every((label) => label.dataset.upright === 'true')).toBe(true);
   expect(screen.getByRole('button', { name: '命运选择中……' })).toBeDisabled();
 });

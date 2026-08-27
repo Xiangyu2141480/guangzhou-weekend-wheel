@@ -1,9 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
-
 :root {
   color: #33302d;
   background: #fff9f1;
-  font-family: 'Noto Sans SC', 'PingFang SC', system-ui, sans-serif;
+  font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   --ink: #33302d;

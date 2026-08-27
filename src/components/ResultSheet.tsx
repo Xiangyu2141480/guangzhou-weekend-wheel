@@ -15,7 +15,7 @@ const environmentLabels = { indoor: '室内', outdoor: '户外', mixed: '室内�
 export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose }: ResultSheetProps) {
   return (
     <div className="sheet-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="result-sheet" role="dialog" aria-modal="true" aria-label="命运决定了！">
+      <section className="result-sheet" role="dialog" aria-modal="true" aria-label="命运决定了！" data-activity-id={activity.id}>
         <button className="sheet-close" type="button" aria-label="关闭结果" onClick={onClose}>×</button>
         <div className="result-dog"><DogMascot state={activity.category === 'food' ? 'eat' : 'point'} alt="开心指向结果的原创线稿小狗" /></div>
         <p className="result-kicker">🐾 命运决定了！</p>

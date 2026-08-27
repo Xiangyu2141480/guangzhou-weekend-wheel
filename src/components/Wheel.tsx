@@ -4,6 +4,7 @@ interface WheelProps {
   candidates: Activity[];
   rotation: number;
   duration: number;
+  selectedIndex?: number;
   isSpinning: boolean;
   onSpin: () => void;
 }
@@ -22,7 +23,7 @@ function sectorPath(index: number, total: number) {
   return `M 160 160 L ${start.x} ${start.y} A 147 147 0 ${angle > 180 ? 1 : 0} 1 ${end.x} ${end.y} Z`;
 }
 
-export function Wheel({ candidates, rotation, duration, isSpinning, onSpin }: WheelProps) {
+export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSpinning, onSpin }: WheelProps) {
   return (
     <section className="wheel-stage" aria-label="转盘区域">
       <span className="wheel-scribble wheel-scribble-left" aria-hidden="true">✦</span>
@@ -36,18 +37,23 @@ export function Wheel({ candidates, rotation, duration, isSpinning, onSpin }: Wh
             role="img"
             aria-label="广州周末随机转盘"
             data-candidate-ids={candidates.map((item) => item.id).join(',')}
+            data-selected-index={selectedIndex}
             style={{ transform: `rotate(${rotation}deg)`, transitionDuration: `${duration}ms` }}
           >
             <circle cx="160" cy="160" r="154" fill="#fffdf8" stroke="#33302d" strokeWidth="5" />
             {candidates.map((candidate, index) => {
               const angle = 360 / candidates.length;
               const center = index * angle + angle / 2;
+              const tangentAngle = (center + 90) % 360;
+              const labelFlip = tangentAngle > 90 && tangentAngle < 270 ? 180 : 0;
               return (
                 <g key={candidate.id}>
                   <path d={sectorPath(index, candidates.length)} fill={colors[index % colors.length]} stroke="#33302d" strokeWidth="2.2" />
                   <g transform={`rotate(${center} 160 160)`}>
-                    <text x="258" y="151" textAnchor="middle" fontSize="17" transform={`rotate(90 258 151)`}>{candidate.emoji}</text>
-                    <text x="230" y="169" textAnchor="middle" fontSize="10.5" fontWeight="700" transform={`rotate(90 230 169)`}>{candidate.shortName}</text>
+                    <g data-testid="wheel-label" data-upright="true" transform={`rotate(${90 + labelFlip} 238 160)`}>
+                      <text x="259" y="155" textAnchor="middle" fontSize="17">{candidate.emoji}</text>
+                      <text x="226" y="164" textAnchor="middle" fontSize="10.5" fontWeight="700">{candidate.shortName}</text>
+                    </g>
                   </g>
                 </g>
               );
