@@ -12,4 +12,5 @@ test('uses the GitHub Pages repository base path in production', () => {
   });
 
   expect(config.base).toBe('/guangzhou-weekend-wheel/');
+  expect(config.test?.exclude).toContain('.worktrees/**');
 });
