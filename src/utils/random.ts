@@ -13,7 +13,11 @@ export function filterActivities(
   return items.filter((activity) => {
     const matchesCategory =
       categoryIds.size === 0 || categoryIds.has(activity.category);
-    const matchesBudget = maxBudget === null || activity.budget <= maxBudget;
+    const matchesBudget =
+      maxBudget === null ||
+      (activity.priceStatus !== 'unknown' &&
+        activity.budget !== null &&
+        activity.budget <= maxBudget);
     const matchesEnvironment =
       environment === null ||
       activity.indoorOutdoor === 'mixed' ||

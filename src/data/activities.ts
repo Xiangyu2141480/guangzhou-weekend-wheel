@@ -1,15 +1,19 @@
-export type ActivityCategory =
-  | 'art'
-  | 'outdoor'
-  | 'food'
-  | 'show'
-  | 'market'
-  | 'experience';
+import type {
+  Activity,
+  ActivityCategory,
+  ActivityTimeTag,
+  EnvironmentPreference,
+  IndoorOutdoor,
+} from './types';
 
-export type EnvironmentPreference = 'indoor' | 'outdoor';
-export type IndoorOutdoor = EnvironmentPreference | 'mixed';
+export type {
+  Activity,
+  ActivityCategory,
+  EnvironmentPreference,
+  IndoorOutdoor,
+} from './types';
 
-export interface Activity {
+interface LegacyActivity {
   id: string;
   name: string;
   shortName: string;
@@ -28,7 +32,7 @@ export interface Activity {
   dynamic?: boolean;
 }
 
-export const activities: Activity[] = [
+const legacyActivities: LegacyActivity[] = [
   {
     id: 'guangdong-museum', name: '逛广东省博物馆', shortName: '广东省博物馆', category: 'art', district: '天河区', budget: 0, budgetLabel: '免费预约', duration: '2–3 小时', indoorOutdoor: 'indoor', tags: ['博物馆', '建筑', '拍照'], emoji: '🏺', reason: '从自然标本到岭南历史，一栋楼就能安稳逛掉半天。', tip: '周一闭馆，热门时段建议提前预约。', mapKeyword: '广东省博物馆', transport: '地铁 3/5 号线珠江新城站，步行约 15 分钟',
   },
@@ -213,6 +217,25 @@ export const activities: Activity[] = [
     id: 'craft-workshop', name: '参加一场随机手作 Workshop', shortName: '随机手作课', category: 'experience', district: '荔湾区', budget: 200, budgetLabel: '约 ¥100–200/人', duration: '2–3 小时', indoorOutdoor: 'indoor', tags: ['手作', '非遗', 'Workshop'], emoji: '✂️', reason: '香囊、银饰、拓印都可以，重点是把周末做成一件看得见的东西。', tip: '活动内容动态变化，预约前确认材料费和成品领取方式。', mapKeyword: '广州 周末 手作 Workshop', transport: '优先选择永庆坊、陈家祠周边工作室', dynamic: true,
   },
 ];
+
+function getTimeTags(duration: string, tags: string[]): ActivityTimeTag[] {
+  const timeTags: ActivityTimeTag[] = [];
+  if (/1(?:\.5)?[–-]2|1–2|2 小时/.test(duration)) timeTags.push('short');
+  if (/2[–-][34]|3[–-]4|2–4|3 小时/.test(duration)) timeTags.push('half-day');
+  if (/4[–-][68]|5 小时|一整天/.test(duration)) timeTags.push('full-day');
+  if (tags.some((tag) => /夜|日落|晚/.test(tag))) timeTags.push('evening');
+  return timeTags.length > 0 ? [...new Set(timeTags)] : ['half-day'];
+}
+
+export const activities: Activity[] = legacyActivities.map(
+  ({ dynamic: _dynamic, ...activity }) => ({
+    ...activity,
+    venue: activity.mapKeyword,
+    priceStatus: activity.budget === 0 ? 'free' : 'known',
+    timeTags: getTimeTags(activity.duration, activity.tags),
+    live: false,
+  }),
+);
 
 export const categories: ReadonlyArray<{
   id: ActivityCategory;

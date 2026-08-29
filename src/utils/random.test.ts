@@ -21,10 +21,25 @@ describe('activity filtering', () => {
       filtered.every(
         (activity) =>
           activity.category === 'outdoor' &&
+          activity.budget !== null &&
           activity.budget <= 50 &&
           activity.indoorOutdoor !== 'indoor',
       ),
     ).toBe(true);
+  });
+
+  test('excludes an unknown price when a strict budget is selected', () => {
+    const unknownPrice = {
+      ...activities[0],
+      id: 'unknown-price',
+      budget: null,
+      budgetLabel: '价格待确认',
+      priceStatus: 'unknown' as const,
+    };
+
+    expect(
+      filterActivities([unknownPrice, ...activities], new Set(), 100, null),
+    ).not.toContain(unknownPrice);
   });
 
   test('returns every activity when no preference is selected', () => {

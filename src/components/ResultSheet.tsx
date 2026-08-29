@@ -29,7 +29,7 @@ export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose
         <div className="transit-note"><span>🚇</span><p>{activity.transport}</p></div>
         <blockquote>“{activity.reason}”</blockquote>
         {activity.tip && <p className="tip"><b>小狗提醒：</b>{activity.tip}</p>}
-        {activity.dynamic && <p className="dynamic-note">具体场次或活动记得出发前确认当天安排哦。</p>}
+        {activity.live && <p className="dynamic-note">具体场次或活动记得出发前确认当天安排哦。</p>}
         <a className="primary-button" href={`https://uri.amap.com/search?keyword=${encodeURIComponent(activity.mapKeyword)}`} target="_blank" rel="noreferrer">🐾 就去这里！</a>
         <div className="result-actions">
           <button type="button" className="soft-button" aria-label="不服，再转一次" onClick={onRetry}>🔄 不服，再转一次</button>
