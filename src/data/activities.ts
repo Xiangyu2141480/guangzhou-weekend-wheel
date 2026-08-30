@@ -5,6 +5,7 @@ import type {
   EnvironmentPreference,
   IndoorOutdoor,
 } from './types';
+import { additionalEvergreenActivities } from './evergreen/additional';
 
 export type {
   Activity,
@@ -227,7 +228,7 @@ function getTimeTags(duration: string, tags: string[]): ActivityTimeTag[] {
   return timeTags.length > 0 ? [...new Set(timeTags)] : ['half-day'];
 }
 
-export const activities: Activity[] = legacyActivities.map(
+const migratedLegacyActivities: Activity[] = legacyActivities.map(
   ({ dynamic: _dynamic, ...activity }) => ({
     ...activity,
     venue: activity.mapKeyword,
@@ -236,6 +237,11 @@ export const activities: Activity[] = legacyActivities.map(
     live: false,
   }),
 );
+
+export const activities: Activity[] = [
+  ...migratedLegacyActivities,
+  ...additionalEvergreenActivities,
+];
 
 export const categories: ReadonlyArray<{
   id: ActivityCategory;
