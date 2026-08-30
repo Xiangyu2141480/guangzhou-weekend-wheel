@@ -48,12 +48,12 @@ describe('activity filtering', () => {
 });
 
 describe('wheel selection', () => {
-  test('returns eight defined and unique candidates', () => {
+  test('returns ten defined and unique candidates', () => {
     const candidates = getWheelCandidates(activities, null, () => 0.42);
 
-    expect(candidates).toHaveLength(8);
+    expect(candidates).toHaveLength(10);
     expect(candidates.every(Boolean)).toBe(true);
-    expect(new Set(candidates.map((activity) => activity.id)).size).toBe(8);
+    expect(new Set(candidates.map((activity) => activity.id)).size).toBe(10);
   });
 
   test('avoids the previous result when alternatives exist', () => {

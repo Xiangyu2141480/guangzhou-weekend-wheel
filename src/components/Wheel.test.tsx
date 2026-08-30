@@ -4,7 +4,7 @@ import { activities } from '../data/activities';
 import { Wheel } from './Wheel';
 
 test('renders the real candidate labels and disables the spin action', () => {
-  const candidates = activities.slice(0, 8);
+  const candidates = activities.slice(0, 10);
   render(
     <Wheel
       candidates={candidates}

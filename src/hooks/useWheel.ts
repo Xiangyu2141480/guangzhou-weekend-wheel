@@ -1,19 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Activity } from '../data/activities';
-import { getTargetRotation, getWheelCandidates } from '../utils/random';
+import type { Activity, RandomMode } from '../data/types';
+import { sampleCandidates } from '../utils/activityPool';
+import { getTargetRotation } from '../utils/random';
 
 interface WheelOptions {
   duration?: number;
+  initialMode?: RandomMode;
   random?: () => number;
   reducedMotion?: boolean;
 }
 
+const CANDIDATE_COUNT = 10;
+const CANDIDATE_HISTORY_LIMIT = CANDIDATE_COUNT * 2;
+const RESULT_HISTORY_LIMIT = 3;
+
 export function useWheel(items: Activity[], options: WheelOptions = {}) {
   const duration = options.reducedMotion ? 700 : (options.duration ?? 3800);
   const random = options.random ?? Math.random;
+  const [mode, setModeState] = useState<RandomMode>(options.initialMode ?? 'fresh');
   const [lockedCandidates, setLockedCandidates] = useState<Activity[] | null>(null);
   const [lockedItems, setLockedItems] = useState<Activity[] | null>(null);
-  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+  const [lockedMode, setLockedMode] = useState<RandomMode | null>(null);
+  const [recentCandidateIds, setRecentCandidateIds] = useState<string[]>([]);
+  const [recentSelectedIds, setRecentSelectedIds] = useState<string[]>([]);
+  const recentCandidateIdsRef = useRef<string[]>([]);
+  const recentSelectedIdsRef = useRef<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [rotation, setRotation] = useState(0);
@@ -24,11 +35,17 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const previewCandidates = useMemo(
-    () => getWheelCandidates(items, lastSelectedId, random),
-    [items, lastSelectedId, random],
+    () => sampleCandidates(items, {
+      mode,
+      count: CANDIDATE_COUNT,
+      recentCandidateIds: recentCandidateIdsRef.current,
+      recentSelectedIds: recentSelectedIdsRef.current,
+      random,
+    }),
+    [items, mode, random],
   );
   const candidates =
-    lockedItems === items && lockedCandidates
+    lockedItems === items && lockedMode === mode && lockedCandidates
       ? lockedCandidates
       : previewCandidates;
 
@@ -39,33 +56,44 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
     [],
   );
 
-  const spin = useCallback(() => {
-    if (spinLockRef.current || items.length === 0) return false;
+  const rememberCandidateRounds = useCallback((ids: string[]) => {
+    const next = ids.slice(-CANDIDATE_HISTORY_LIMIT);
+    recentCandidateIdsRef.current = next;
+    setRecentCandidateIds(next);
+  }, []);
 
-    const nextCandidates = getWheelCandidates(
-      items,
-      lastSelectedId,
-      random,
-    );
+  const spin = useCallback(() => {
+    if (spinLockRef.current || candidates.length === 0) return false;
+
     const nextIndex = Math.min(
-      nextCandidates.length - 1,
-      Math.floor(random() * nextCandidates.length),
+      candidates.length - 1,
+      Math.floor(random() * candidates.length),
     );
-    const nextActivity = nextCandidates[nextIndex];
+    const nextActivity = candidates[nextIndex];
     if (!nextActivity) return false;
 
     spinLockRef.current = true;
-    setLockedCandidates(nextCandidates);
+    setLockedCandidates(candidates);
     setLockedItems(items);
+    setLockedMode(mode);
     setSelectedActivity(null);
     setSelectedIndex(nextIndex);
     setIsSpinning(true);
     setRotation((current) =>
-      getTargetRotation(nextIndex, nextCandidates.length, current),
+      getTargetRotation(nextIndex, candidates.length, current),
     );
+    rememberCandidateRounds([
+      ...recentCandidateIdsRef.current,
+      ...candidates.map((item) => item.id),
+    ]);
 
     timerRef.current = setTimeout(() => {
-      setLastSelectedId(nextActivity.id);
+      const nextSelectedIds = [
+        ...recentSelectedIdsRef.current,
+        nextActivity.id,
+      ].slice(-RESULT_HISTORY_LIMIT);
+      recentSelectedIdsRef.current = nextSelectedIds;
+      setRecentSelectedIds(nextSelectedIds);
       setSelectedActivity(nextActivity);
       setSpinCount((count) => count + 1);
       setCategoryHistory((history) => [...history.slice(-2), nextActivity.category]);
@@ -74,7 +102,43 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
     }, duration);
 
     return true;
-  }, [duration, items, lastSelectedId, random]);
+  }, [candidates, duration, items, mode, random, rememberCandidateRounds]);
+
+  const reroll = useCallback(() => {
+    if (spinLockRef.current) return false;
+
+    const currentIds = candidates.map((item) => item.id);
+    const historyWithCurrent = [
+      ...recentCandidateIdsRef.current,
+      ...currentIds,
+    ].slice(-CANDIDATE_HISTORY_LIMIT);
+    const nextCandidates = sampleCandidates(items, {
+      mode,
+      count: CANDIDATE_COUNT,
+      recentCandidateIds: historyWithCurrent,
+      recentSelectedIds: recentSelectedIdsRef.current,
+      random,
+    });
+
+    setLockedCandidates(nextCandidates);
+    setLockedItems(items);
+    setLockedMode(mode);
+    setSelectedActivity(null);
+    setSelectedIndex(-1);
+    rememberCandidateRounds([...currentIds, ...nextCandidates.map((item) => item.id)]);
+    return true;
+  }, [candidates, items, mode, random, rememberCandidateRounds]);
+
+  const setMode = useCallback((nextMode: RandomMode) => {
+    if (spinLockRef.current || nextMode === mode) return false;
+    setLockedCandidates(null);
+    setLockedItems(null);
+    setLockedMode(null);
+    setSelectedActivity(null);
+    setSelectedIndex(-1);
+    setModeState(nextMode);
+    return true;
+  }, [mode]);
 
   const clearResult = useCallback(() => setSelectedActivity(null), []);
 
@@ -86,7 +150,12 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
     isSpinning,
     spinCount,
     categoryHistory,
+    mode,
+    recentCandidateIds,
+    recentSelectedIds,
     spin,
+    reroll,
+    setMode,
     clearResult,
     duration,
   };

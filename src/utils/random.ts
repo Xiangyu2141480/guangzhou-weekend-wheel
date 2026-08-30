@@ -46,7 +46,7 @@ export function getWheelCandidates(
     ];
   }
 
-  return shuffled.slice(0, 8);
+  return shuffled.slice(0, 10);
 }
 
 export function pickIndex(length: number): number {
