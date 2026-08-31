@@ -24,7 +24,11 @@ interface PriceDecision {
 }
 
 export function normalizeText(value: string): string {
-  return value.normalize('NFKC').replace(/\s+/gu, ' ').trim();
+  return value
+    .normalize('NFKC')
+    .replace(/[—–]/gu, '-')
+    .replace(/\s+/gu, ' ')
+    .trim();
 }
 
 function parsePrice(value?: string): PriceDecision {
