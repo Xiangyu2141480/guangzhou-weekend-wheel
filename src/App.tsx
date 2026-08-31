@@ -11,6 +11,7 @@ import {
   type ActivityCategory,
   type EnvironmentPreference,
 } from './data/activities';
+import { useActivityPool } from './hooks/useActivityPool';
 import { useFavorites } from './hooks/useFavorites';
 import { useWheel } from './hooks/useWheel';
 import { filterActivities } from './utils/random';
@@ -29,14 +30,15 @@ export default function App() {
   const [budget, setBudget] = useState<number | null>(null);
   const [environment, setEnvironment] = useState<EnvironmentPreference | null>(null);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const activityPool = useActivityPool(activities);
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const filteredActivities = useMemo(
-    () => filterActivities(activities, selectedCategories, budget, environment),
-    [selectedCategories, budget, environment],
+    () => filterActivities(activityPool.activities, selectedCategories, budget, environment),
+    [activityPool.activities, selectedCategories, budget, environment],
   );
   const wheel = useWheel(filteredActivities, { reducedMotion });
   const favorites = useFavorites();
-  const favoriteActivities = activities.filter((activity) => favorites.favoriteIds.includes(activity.id));
+  const favoriteActivities = activityPool.activities.filter((activity) => favorites.favoriteIds.includes(activity.id));
   const easterEgg = getEasterEgg(wheel.spinCount, wheel.categoryHistory);
   const dogState = wheel.isSpinning
     ? 'spin'
@@ -67,7 +69,12 @@ export default function App() {
   };
 
   return (
-    <main className="app-shell">
+    <main
+      className="app-shell"
+      data-pool-loading={activityPool.loading}
+      data-evergreen-count={activityPool.evergreenCount}
+      data-live-count={activityPool.liveCount}
+    >
       <div className="doodle doodle-one" aria-hidden="true">✿</div>
       <div className="doodle doodle-two" aria-hidden="true">★</div>
       <Header favoriteCount={favorites.favoriteIds.length} onOpenFavorites={() => setFavoritesOpen(true)} />
@@ -83,7 +90,7 @@ export default function App() {
       />
 
       <section className="wheel-note">
-        <div className="wheel-title"><span className="step-dot">2</span><div><h2>交给命运吧！</h2><p>{filteredActivities.length > 0 ? `小狗从 ${filteredActivities.length} 个好去处里挑了 8 个` : '这个要求有点难倒小狗了……'}</p></div></div>
+        <div className="wheel-title"><span className="step-dot">2</span><div><h2>交给命运吧！</h2><p>{filteredActivities.length > 0 ? `小狗从 ${filteredActivities.length} 个好去处里挑了 10 个` : '这个要求有点难倒小狗了……'}</p></div></div>
         {filteredActivities.length > 0 ? (
           <>
             <Wheel candidates={wheel.candidates} rotation={wheel.rotation} duration={wheel.duration} selectedIndex={wheel.selectedIndex} isSpinning={wheel.isSpinning} onSpin={wheel.spin} />

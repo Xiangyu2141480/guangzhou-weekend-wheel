@@ -1,6 +1,7 @@
 import type { ConfigEnv, UserConfig } from 'vite';
 import { expect, test } from 'vitest';
 import viteConfig from '../../vite.config';
+import { getDataUrl } from './pages';
 
 test('uses the GitHub Pages repository base path in production', () => {
   const factory = viteConfig as (environment: ConfigEnv) => UserConfig;
@@ -13,4 +14,7 @@ test('uses the GitHub Pages repository base path in production', () => {
 
   expect(config.base).toBe('/guangzhou-weekend-wheel/');
   expect(config.test?.exclude).toContain('.worktrees/**');
+  expect(getDataUrl('live-activities.json', config.base as string)).toBe(
+    '/guangzhou-weekend-wheel/data/live-activities.json',
+  );
 });
