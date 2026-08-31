@@ -7,9 +7,21 @@ interface WheelProps {
   selectedIndex?: number;
   isSpinning: boolean;
   onSpin: () => void;
+  onReroll: () => void;
 }
 
-const colors = ['#ffd978', '#ffc8d4', '#bfd8b8', '#bfddf5', '#f4c8a8', '#d6c7e8', '#f8e7a9', '#b9ddd0'];
+const colors = [
+  '#ffd978',
+  '#ffc8d4',
+  '#bfd8b8',
+  '#bfddf5',
+  '#f4c8a8',
+  '#d6c7e8',
+  '#f8e7a9',
+  '#b9ddd0',
+  '#ffd0ad',
+  '#c8d6f0',
+];
 
 function pointOnCircle(cx: number, cy: number, radius: number, angle: number) {
   const radians = (angle * Math.PI) / 180;
@@ -23,7 +35,7 @@ function sectorPath(index: number, total: number) {
   return `M 160 160 L ${start.x} ${start.y} A 147 147 0 ${angle > 180 ? 1 : 0} 1 ${end.x} ${end.y} Z`;
 }
 
-export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSpinning, onSpin }: WheelProps) {
+export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSpinning, onSpin, onReroll }: WheelProps) {
   return (
     <section className="wheel-stage" aria-label="转盘区域">
       <span className="wheel-scribble wheel-scribble-left" aria-hidden="true">✦</span>
@@ -52,7 +64,7 @@ export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSp
                   <g transform={`rotate(${center} 160 160)`}>
                     <g data-testid="wheel-label" data-upright="true" transform={`rotate(${90 + labelFlip} 238 160)`}>
                       <text x="259" y="155" textAnchor="middle" fontSize="17">{candidate.emoji}</text>
-                      <text x="226" y="164" textAnchor="middle" fontSize="10.5" fontWeight="700">{candidate.shortName}</text>
+                      <text x="226" y="164" textAnchor="middle" fontSize="10.5" fontWeight="700">{candidate.shortName.slice(0, 6)}</text>
                     </g>
                   </g>
                 </g>
@@ -74,6 +86,15 @@ export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSp
           <small>{isSpinning ? '命运选择中…' : 'PUSH'}</small>
         </button>
       </div>
+      <button
+        className="reroll-button"
+        type="button"
+        aria-label="换一批"
+        disabled={isSpinning || candidates.length === 0}
+        onClick={onReroll}
+      >
+        <span aria-hidden="true">🔀</span> 换一批
+      </button>
     </section>
   );
 }
