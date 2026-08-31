@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
+    "sync:activities": "tsx scripts/sync-activities/index.ts",
+    "sync:check": "tsx scripts/sync-activities/index.ts --validate-only",
     "qa:e2e": "playwright test",
     "preview": "vite preview"
   },

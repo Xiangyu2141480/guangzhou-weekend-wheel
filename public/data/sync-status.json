@@ -1,0 +1,16 @@
+{
+  "generatedAt": null,
+  "configuredSources": 3,
+  "successfulSources": 0,
+  "failedSources": 0,
+  "sourceCounts": {},
+  "fetchedCount": 0,
+  "invalidCount": 0,
+  "expiredCount": 0,
+  "duplicateCount": 0,
+  "finalCount": 0,
+  "usedFallback": false,
+  "warnings": [
+    "Live activity synchronization has not run yet."
+  ]
+}
