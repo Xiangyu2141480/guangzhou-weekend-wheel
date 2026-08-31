@@ -38,11 +38,11 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
     () => sampleCandidates(items, {
       mode,
       count: CANDIDATE_COUNT,
-      recentCandidateIds: recentCandidateIdsRef.current,
-      recentSelectedIds: recentSelectedIdsRef.current,
+      recentCandidateIds,
+      recentSelectedIds,
       random,
     }),
-    [items, mode, random],
+    [items, mode, random, recentCandidateIds, recentSelectedIds],
   );
   const candidates =
     lockedItems === items && lockedMode === mode && lockedCandidates
@@ -138,9 +138,20 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
     setSelectedIndex(-1);
     setModeState(nextMode);
     return true;
-  }, [mode]);
+  }, [
+    mode,
+    setLockedCandidates,
+    setLockedItems,
+    setLockedMode,
+    setModeState,
+    setSelectedActivity,
+    setSelectedIndex,
+  ]);
 
-  const clearResult = useCallback(() => setSelectedActivity(null), []);
+  const clearResult = useCallback(
+    () => setSelectedActivity(null),
+    [setSelectedActivity],
+  );
 
   return {
     candidates,
