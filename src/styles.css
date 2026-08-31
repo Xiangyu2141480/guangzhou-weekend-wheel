@@ -140,26 +140,41 @@ footer small { font-size: 10px; }
 
 .sheet-backdrop { position: fixed; z-index: 20; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 16px; background: rgba(51,48,45,.34); backdrop-filter: blur(2px); }
 .result-sheet, .favorites-sheet { position: relative; width: min(100%, 560px); max-height: min(88vh, 760px); overflow: auto; border: 3px solid var(--ink); border-radius: 28px 28px 15px 15px; background: var(--paper); box-shadow: 7px 8px 0 rgba(51,48,45,.28); animation: sheet-up .38s cubic-bezier(.2,.8,.2,1); }
-.result-sheet { padding: 20px 18px 22px; text-align: center; }
+.result-sheet { padding: 17px 18px 20px; text-align: center; }
+.result-sheet::before, .result-sheet::after { content: ''; position: absolute; top: 60%; width: 25px; height: 25px; border: 2.5px solid var(--ink); border-radius: 50%; background: rgba(51,48,45,.34); }
+.result-sheet::before { left: -15px; }
+.result-sheet::after { right: -15px; }
 .sheet-close { position: absolute; z-index: 2; top: 12px; right: 13px; width: 34px; height: 34px; border: 2px solid var(--ink); border-radius: 50%; background: #fff; font-size: 24px; line-height: 27px; cursor: pointer; }
-.result-dog { width: 125px; margin: -12px auto -12px; }
+.ticket-topline { display: flex; align-items: center; justify-content: space-between; padding: 0 42px 9px 0; border-bottom: 1.5px dashed rgba(51,48,45,.35); color: #746a63; font: 700 8px 'Gaegu',sans-serif; letter-spacing: .1em; }
+.ticket-topline b { color: var(--ink); font-size: 10px; }
+.ticket-stickers { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; min-height: 27px; margin: 9px auto 0; }
+.sticker { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border: 1.5px solid var(--ink); border-radius: 8px 11px 7px 10px; background: #fff; box-shadow: 1px 2px 0 rgba(51,48,45,.12); font-size: 10px; font-weight: 900; transform: rotate(-2deg); }
+.sticker-live { background: var(--pink); }
+.sticker-ending { background: var(--yellow); transform: rotate(2deg); }
+.sticker-free { background: var(--green); transform: rotate(-1deg); }
+.result-dog { width: 148px; margin: -7px auto -22px; }
+.result-dog .yuwan-mascot { width: 100%; }
 .result-kicker { display: inline-block; margin: 0; padding: 4px 11px; background: var(--pink); font: 700 17px 'Gaegu','Noto Sans SC',sans-serif; transform: rotate(-1deg); }
-.result-sheet h2 { margin: 11px auto 12px; max-width: 420px; font-size: clamp(23px, 6vw, 31px); line-height: 1.2; }
+.result-sheet h2 { margin: 11px auto 5px; max-width: 420px; font-size: clamp(23px, 6vw, 31px); line-height: 1.2; }
+.result-venue { margin: 0 auto 11px; color: #6f655e; font-size: 12px; font-weight: 700; }
+.event-schedule { margin: 0 3px 10px; padding: 7px 9px; border: 1.5px dashed #9b7840; border-radius: 8px; background: #fff6d9; font-size: 10px; font-weight: 800; }
 .result-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
 .result-meta span { padding: 5px 8px; border: 1.5px solid var(--ink); border-radius: 999px; background: #fff; font-size: 11px; }
 .transit-note { display: flex; align-items: flex-start; gap: 8px; margin: 13px 0 0; padding: 9px 11px; border: 1.5px dashed var(--ink); background: rgba(191,221,245,.35); text-align: left; }
 .transit-note p { margin: 0; font-size: 12px; line-height: 1.55; }
 .result-sheet blockquote { margin: 14px 3px 10px; padding: 12px; border-left: 5px solid var(--green); background: #f8f5ee; font-size: 13px; font-weight: 600; line-height: 1.75; text-align: left; }
-.tip, .dynamic-note { margin: 7px 3px; font-size: 11px; line-height: 1.6; text-align: left; }
-.dynamic-note { padding: 7px 9px; background: #fff2c7; border-radius: 8px; }
-.result-sheet .primary-button { margin-top: 15px; }
+.tip { margin: 7px 3px; font-size: 11px; line-height: 1.6; text-align: left; }
+.result-primary-actions { display: grid; gap: 8px; margin-top: 15px; }
+.official-link { display: block; width: fit-content; margin: 0 auto; color: #315d76; font-size: 11px; font-weight: 800; text-underline-offset: 3px; }
 .result-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .soft-button { min-height: 42px; border: 1.8px solid var(--ink); border-radius: 11px 10px 13px 9px; background: #fff; box-shadow: 2px 2px 0 rgba(51,48,45,.13); font-size: 11px; font-weight: 700; cursor: pointer; }
-.result-actions .soft-button:first-child { grid-column: 1 / -1; background: var(--blue); }
+.result-actions .soft-button:first-child { background: var(--blue); }
+.result-actions .soft-button[aria-pressed='true'] { background: var(--pink); }
+.source-note { margin: 14px 6px 0; padding-top: 10px; border-top: 1.5px dashed rgba(51,48,45,.25); color: #7b716a; font-size: 9px; line-height: 1.55; }
 
 .favorites-sheet { padding: 22px 17px 24px; }
 .favorites-title { display: flex; align-items: center; gap: 8px; padding-right: 40px; }
-.favorites-title .dog-mascot { width: 112px; }
+.favorites-title .yuwan-mascot { width: 112px; }
 .favorites-title p { margin: 0; font: 700 12px 'Gaegu',cursive; letter-spacing: .12em; }
 .favorites-title h2 { margin: 0; font-size: 27px; }
 .favorites-empty { padding: 35px 12px; text-align: center; }

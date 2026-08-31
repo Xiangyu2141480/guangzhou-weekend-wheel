@@ -19,13 +19,12 @@ for (const viewport of mobileViewports) {
     }));
     expect(sizes.content).toBeLessThanOrEqual(sizes.viewport);
     const candidateIds = (await page.getByLabel('广州周末随机转盘').getAttribute('data-candidate-ids'))?.split(',');
-    expect(candidateIds).toHaveLength(8);
+    expect(candidateIds).toHaveLength(10);
     await page.close();
   });
 }
 
-test('keeps the stopped sector and result card consistent, then persists a favorite', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+test('keeps the stopped sector and result card consistent, then persists a favorite', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./');
   const wheel = page.getByLabel('广州周末随机转盘');
@@ -41,9 +40,8 @@ test('keeps the stopped sector and result card consistent, then persists a favor
 
   await dialog.getByRole('button', { name: '收藏这个地点' }).click();
   await expect(dialog.getByRole('button', { name: '取消收藏这个地点' })).toBeVisible();
-  const shareButton = dialog.getByRole('button', { name: '分享或复制结果' });
-  await shareButton.click();
-  await expect(shareButton).toContainText(/汪！(已经复制啦|分享好啦)/);
+  await expect(dialog.getByRole('link', { name: '去地图看看' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: /分享|复制|下载/ })).toHaveCount(0);
   await dialog.getByRole('button', { name: '关闭结果' }).click();
 
   await page.reload();
@@ -55,7 +53,7 @@ test('offers a one-click reset when filters have no matches', async ({ page }) =
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./');
   await page.getByRole('button', { name: '演出' }).click();
-  await page.getByText('再偷偷告诉小狗一点…').click();
+  await page.getByText('再挑一点').click();
   await page.getByRole('button', { name: '¥50以内' }).click();
 
   await expect(page.getByRole('button', { name: '放宽一点条件' })).toBeVisible();
