@@ -1,5 +1,5 @@
 import type { Activity } from '../data/activities';
-import { DogMascot } from './DogMascot';
+import { YuwanMascot } from './YuwanMascot';
 import { ShareButton } from './ShareButton';
 
 interface ResultSheetProps {
@@ -17,7 +17,7 @@ export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose
     <div className="sheet-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="result-sheet" role="dialog" aria-modal="true" aria-label="命运决定了！" data-activity-id={activity.id}>
         <button className="sheet-close" type="button" aria-label="关闭结果" onClick={onClose}>×</button>
-        <div className="result-dog"><DogMascot state={activity.category === 'food' ? 'eat' : 'point'} alt="开心指向结果的原创线稿小狗" /></div>
+        <div className="result-dog"><YuwanMascot state="ticket" alt="举着周末票根的鱼丸" /></div>
         <p className="result-kicker">🐾 命运决定了！</p>
         <h2>{activity.name}！</h2>
         <div className="result-meta">

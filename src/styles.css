@@ -48,6 +48,10 @@ h1 { margin: 4px 0 0; font-family: 'Gaegu', 'Noto Sans SC', sans-serif; font-siz
 .header-note { display: inline-block; margin: 13px 0 0; padding: 5px 13px 7px; border-bottom: 2px solid var(--ink); font: 700 16px 'Gaegu', 'Noto Sans SC', sans-serif; }
 .header-dog { position: absolute; left: -4px; bottom: -1px; width: 105px; transform: rotate(-5deg); }
 .dog-mascot { display: block; width: 100%; height: auto; }
+.yuwan-mascot { display: block; height: auto; object-fit: contain; }
+.yuwan-mascot--sm { width: 48px; }
+.yuwan-mascot--md { width: 72px; }
+.yuwan-mascot--lg { width: 120px; }
 
 .filter-note, .wheel-note { position: relative; border: 2.5px solid var(--ink); background: var(--paper); box-shadow: var(--shadow); }
 .filter-note { margin: 0 4px 22px; padding: 20px 15px 14px; transform: rotate(.35deg); }

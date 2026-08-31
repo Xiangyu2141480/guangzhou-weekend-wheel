@@ -1,4 +1,4 @@
-import { DogMascot } from './DogMascot';
+import { YuwanMascot } from './YuwanMascot';
 
 interface HeaderProps {
   favoriteCount: number;
@@ -25,7 +25,7 @@ export function Header({ favoriteCount, onOpenFavorites }: HeaderProps) {
         <p className="header-note">不知道去哪玩？交给命运吧。</p>
       </div>
       <div className="header-dog" aria-hidden="true">
-        <DogMascot state="rest" alt="" />
+        <YuwanMascot state="point" alt="" size="lg" />
       </div>
     </header>
   );

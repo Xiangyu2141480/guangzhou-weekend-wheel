@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Confetti } from './components/Confetti';
-import { DogMascot } from './components/DogMascot';
+import { YuwanMascot } from './components/YuwanMascot';
 import { FavoritesSheet } from './components/FavoritesSheet';
 import { FilterPanel } from './components/FilterPanel';
 import { Header } from './components/Header';
@@ -14,6 +14,7 @@ import {
 import { useActivityPool } from './hooks/useActivityPool';
 import { useFavorites } from './hooks/useFavorites';
 import { useWheel } from './hooks/useWheel';
+import type { YuwanState } from './constants/mascot';
 import { filterActivities } from './utils/random';
 
 function getEasterEgg(spinCount: number, history: ActivityCategory[]) {
@@ -40,13 +41,13 @@ export default function App() {
   const favorites = useFavorites();
   const favoriteActivities = activityPool.activities.filter((activity) => favorites.favoriteIds.includes(activity.id));
   const easterEgg = getEasterEgg(wheel.spinCount, wheel.categoryHistory);
-  const dogState = wheel.isSpinning
+  const yuwanState: YuwanState = wheel.isSpinning
     ? 'spin'
     : wheel.selectedActivity
-      ? wheel.selectedActivity.category === 'food' ? 'eat' : 'happy'
+      ? 'happy'
       : selectedCategories.size > 0 || budget !== null || environment !== null
         ? 'think'
-        : 'walk';
+        : 'run';
 
   const toggleCategory = (category: ActivityCategory) => {
     setSelectedCategories((current) => {
@@ -94,11 +95,11 @@ export default function App() {
         {filteredActivities.length > 0 ? (
           <>
             <Wheel candidates={wheel.candidates} rotation={wheel.rotation} duration={wheel.duration} selectedIndex={wheel.selectedIndex} isSpinning={wheel.isSpinning} onSpin={wheel.spin} />
-            <div className={`wheel-dog ${wheel.isSpinning ? 'is-spinning' : ''}`}><DogMascot state={dogState} alt={wheel.isSpinning ? '正在晕乎乎转圈的原创线稿小狗' : '陪你决定周末去处的原创线稿小狗'} /></div>
+            <div className={`wheel-dog ${wheel.isSpinning ? 'is-spinning' : ''}`}><YuwanMascot state={yuwanState} alt={wheel.isSpinning ? '正在晕乎乎转圈的鱼丸' : '陪你决定周末去处的鱼丸'} /></div>
             <p className="spin-hint">{wheel.isSpinning ? '小狗正在努力读取命运…' : '按下去，就不许纠结啦'}</p>
           </>
         ) : (
-          <div className="empty-state"><DogMascot state="think" alt="被筛选条件难住的原创线稿小狗" /><h3>这个要求有点难倒小狗了……</h3><p>放宽一点点，快乐就会多一点点。</p><button className="primary-button" type="button" aria-label="放宽一点条件" onClick={resetFilters}>放宽一点条件</button></div>
+          <div className="empty-state"><YuwanMascot state="empty" alt="被筛选条件难住的鱼丸" /><h3>这个要求有点难倒鱼丸了……</h3><p>放宽一点点，快乐就会多一点点。</p><button className="primary-button" type="button" aria-label="放宽一点条件" onClick={resetFilters}>放宽一点条件</button></div>
         )}
       </section>
 
