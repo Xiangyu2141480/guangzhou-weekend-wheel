@@ -22,7 +22,7 @@ test('renders ten real candidate labels and disables wheel actions while spinnin
     'data-candidate-ids',
     candidates.map((item) => item.id).join(','),
   );
-  expect(screen.getByText(candidates[0].shortName)).toBeInTheDocument();
+  expect(screen.getByText(candidates[0].shortName.slice(0, 4))).toBeInTheDocument();
   expect(screen.getByLabelText('广州周末随机转盘')).toHaveAttribute('data-selected-index', '3');
   expect(screen.getAllByTestId('wheel-label').every((label) => label.dataset.upright === 'true')).toBe(true);
   expect(screen.getAllByTestId('wheel-label')).toHaveLength(10);

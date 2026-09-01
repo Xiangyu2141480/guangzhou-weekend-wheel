@@ -205,6 +205,31 @@ footer small { font-size: 10px; }
   .wheel-note { padding-inline: 24px; }
   .filter-note { padding-inline: 22px; }
 }
+@media (min-width: 900px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: minmax(350px, 410px) minmax(0, 1fr);
+    grid-template-rows: auto max-content minmax(0, 1fr) auto;
+    column-gap: 28px;
+    align-items: start;
+    width: min(100%, 1060px);
+    padding: 20px 24px 34px;
+    overflow: visible;
+  }
+  .app-header { grid-column: 1 / -1; min-height: 196px; padding-top: 38px; }
+  .app-header h1 { font-size: 70px; }
+  .header-dog { left: calc(50% - 295px); bottom: -2px; width: 132px; }
+  .favorites-trigger { right: 8px; }
+  .filter-note { grid-column: 1; grid-row: 2; margin: 0; padding: 20px 20px 17px; }
+  .pool-status { grid-column: 1; grid-row: 3; margin: 22px 5px 0; }
+  .wheel-note { grid-column: 2; grid-row: 2 / span 2; margin: 0; padding: 20px 24px 15px; }
+  .wheel-stage { width: min(100%, 500px); }
+  .wheel-dog { width: 120px; right: 0; }
+  .easter-egg, footer { grid-column: 1 / -1; }
+  footer { grid-row: 4; margin-top: 30px; }
+  .doodle-one { top: 235px; left: -25px; }
+  .doodle-two { top: 470px; right: -25px; }
+}
 @media (max-width: 380px) {
   .app-shell { padding-inline: 10px; }
   .app-header { min-height: 180px; }

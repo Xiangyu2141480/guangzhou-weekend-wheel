@@ -56,16 +56,14 @@ export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSp
             {candidates.map((candidate, index) => {
               const angle = 360 / candidates.length;
               const center = index * angle + angle / 2;
-              const tangentAngle = (center + 90) % 360;
-              const labelFlip = tangentAngle > 90 && tangentAngle < 270 ? 180 : 0;
+              const emojiPosition = pointOnCircle(160, 160, 119, center);
+              const textPosition = pointOnCircle(160, 160, 94, center);
               return (
                 <g key={candidate.id}>
                   <path d={sectorPath(index, candidates.length)} fill={colors[index % colors.length]} stroke="#33302d" strokeWidth="2.2" />
-                  <g transform={`rotate(${center} 160 160)`}>
-                    <g data-testid="wheel-label" data-upright="true" transform={`rotate(${90 + labelFlip} 238 160)`}>
-                      <text x="259" y="155" textAnchor="middle" fontSize="17">{candidate.emoji}</text>
-                      <text x="226" y="164" textAnchor="middle" fontSize="10.5" fontWeight="700">{candidate.shortName.slice(0, 6)}</text>
-                    </g>
+                  <g data-testid="wheel-label" data-upright="true">
+                    <text x={emojiPosition.x} y={emojiPosition.y + 5} textAnchor="middle" fontSize="15">{candidate.emoji}</text>
+                    <text x={textPosition.x} y={textPosition.y + 3} textAnchor="middle" fontSize="9.2" fontWeight="800">{candidate.shortName.slice(0, 4)}</text>
                   </g>
                 </g>
               );

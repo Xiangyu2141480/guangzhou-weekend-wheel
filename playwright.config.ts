@@ -12,6 +12,7 @@ export default defineConfig({
     browserName: 'chromium',
     colorScheme: 'light',
     locale: 'zh-CN',
+    reducedMotion: 'reduce',
     trace: 'retain-on-failure',
   },
   webServer: remoteBaseUrl
