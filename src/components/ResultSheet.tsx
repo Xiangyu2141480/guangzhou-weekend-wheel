@@ -1,4 +1,5 @@
 import type { Activity, LiveActivity } from '../data/types';
+import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 import { YuwanMascot } from './YuwanMascot';
 
 interface ResultSheetProps {
@@ -40,10 +41,11 @@ function getEventSchedule(activity: LiveActivity): string {
 export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose }: ResultSheetProps) {
   const mapUrl = `https://uri.amap.com/search?keyword=${encodeURIComponent(activity.mapKeyword)}`;
   const endingSoon = activity.live && isEndingSoon(activity);
+  const dialogRef = useDialogFocusTrap<HTMLElement>(onClose);
 
   return (
     <div className="sheet-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="result-sheet" role="dialog" aria-modal="true" aria-label="命运决定了！" data-activity-id={activity.id}>
+      <section ref={dialogRef} className="result-sheet" role="dialog" aria-modal="true" aria-label="命运决定了！" data-activity-id={activity.id} tabIndex={-1}>
         <button className="sheet-close" type="button" aria-label="关闭结果" onClick={onClose}>×</button>
 
         <div className="ticket-topline" aria-hidden="true"><span>GUANGZHOU</span><b>WEEKEND PASS</b><span>NO. {activity.id.slice(0, 6).toUpperCase()}</span></div>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, test, vi } from 'vitest';
@@ -69,4 +70,41 @@ test('marks supported live facts and links to the official source', () => {
   expect(within(screen.getByLabelText('活动标签')).getByText('免费')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: '查看官方详情' })).toHaveAttribute('href', liveActivity.sourceUrl);
   expect(screen.getByText(/活动信息来自广州图书馆/)).toBeInTheDocument();
+});
+
+test('traps focus, closes on Escape and restores focus to the opener', async () => {
+  const user = userEvent.setup();
+
+  function Harness() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>查看结果</button>
+        {open && (
+          <ResultSheet
+            activity={activities[0]}
+            isFavorite={false}
+            onFavorite={vi.fn()}
+            onRetry={vi.fn()}
+            onClose={() => setOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
+
+  render(<Harness />);
+  const opener = screen.getByRole('button', { name: '查看结果' });
+  await user.click(opener);
+
+  const closeButton = screen.getByRole('button', { name: '关闭结果' });
+  expect(closeButton).toHaveFocus();
+  await user.tab({ shift: true });
+  expect(screen.getByRole('button', { name: '收藏这个地点' })).toHaveFocus();
+  await user.tab();
+  expect(closeButton).toHaveFocus();
+
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(opener).toHaveFocus();
 });
