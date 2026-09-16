@@ -38,6 +38,25 @@ describe('useWheel', () => {
     expect(result.current.candidates.every((item) => activities.slice(20, 28).includes(item))).toBe(true);
   });
 
+  test('keeps the selected candidate stable when items change during a spin', () => {
+    const initialItems = activities.slice(0, 12);
+    const replacementItems = activities.slice(20, 28);
+    const { result, rerender } = renderHook(
+      ({ items }) => useWheel(items, { duration: 100, random: () => 0.25 }),
+      { initialProps: { items: initialItems } },
+    );
+    const lockedIds = result.current.candidates.map((item) => item.id);
+
+    act(() => result.current.spin());
+    const preselected = result.current.candidates[result.current.selectedIndex];
+    rerender({ items: replacementItems });
+
+    expect(result.current.candidates.map((item) => item.id)).toEqual(lockedIds);
+    act(() => vi.advanceTimersByTime(100));
+    expect(result.current.selectedActivity).toEqual(preselected);
+    expect(result.current.candidates.every((item) => replacementItems.includes(item))).toBe(true);
+  });
+
   test('rerolls ten candidates without selecting a result and retains two rounds of history', () => {
     let seed = 7;
     const random = () => {
