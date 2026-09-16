@@ -98,6 +98,9 @@ npm run build            # TypeScript + Vite 生产构建
 npm run qa:e2e           # Playwright Chromium 浏览器流程
 ```
 
+如果当前网络无法下载 Playwright Chromium，可设置
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 指向本机 Chrome 后运行 `npm run qa:e2e`。
+
 生产环境使用 `/guangzhou-weekend-wheel/` 作为 Vite base path。前端通过 `import.meta.env.BASE_URL` 读取 JSON，因此 GitHub Pages 子路径和本地开发路径使用同一套代码。
 
 ## 部署与维护
