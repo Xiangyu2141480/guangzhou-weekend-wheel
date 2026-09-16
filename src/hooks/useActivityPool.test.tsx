@@ -5,6 +5,7 @@ import type { LiveActivity } from '../data/types';
 import { useActivityPool } from './useActivityPool';
 
 const evergreen = activities.slice(0, 3);
+const now = new Date('2026-09-02T00:00:00+08:00');
 const liveActivity: LiveActivity = {
   ...activities[0],
   id: 'live-test-event',
@@ -54,6 +55,7 @@ describe('useActivityPool', () => {
     const { result } = renderHook(() => useActivityPool(evergreen, {
       baseUrl: '/guangzhou-weekend-wheel/',
       fetcher,
+      now,
     }));
 
     await waitFor(() => expect(result.current.liveCount).toBe(1));
@@ -73,7 +75,7 @@ describe('useActivityPool', () => {
     const fetcher = vi.fn().mockRejectedValue(new Error('offline'));
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher }));
+    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher, now }));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.activities).toEqual(evergreen);
@@ -86,10 +88,45 @@ describe('useActivityPool', () => {
       .mockResolvedValueOnce(jsonResponse(syncStatus));
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher }));
+    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher, now }));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.liveCount).toBe(1);
     expect(result.current.activities.at(-1)).toEqual(liveActivity);
+  });
+
+  it('drops expired records and recomputes live statuses at load time', async () => {
+    const ongoing = {
+      ...liveActivity,
+      id: 'live-ongoing',
+      eventStart: '2026-09-01T10:00:00+08:00',
+      eventEnd: '2026-09-03T18:00:00+08:00',
+      status: 'upcoming',
+    } satisfies LiveActivity;
+    const expired = {
+      ...liveActivity,
+      id: 'live-expired',
+      eventStart: '2026-08-31T10:00:00+08:00',
+      eventEnd: '2026-09-01T18:00:00+08:00',
+      status: 'ongoing',
+    } satisfies LiveActivity;
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(jsonResponse([liveActivity, ongoing, expired]))
+      .mockResolvedValueOnce(jsonResponse(syncStatus));
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher, now }));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.liveCount).toBe(2);
+    expect(result.current.activities).not.toContainEqual(expired);
+    expect(result.current.activities.at(-2)).toMatchObject({
+      id: liveActivity.id,
+      status: 'upcoming',
+    });
+    expect(result.current.activities.at(-1)).toMatchObject({
+      id: ongoing.id,
+      status: 'ongoing',
+    });
   });
 });

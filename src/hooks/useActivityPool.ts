@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getDataUrl } from '../config/pages';
 import type { Activity, LiveActivity } from '../data/types';
 import { isActivity } from '../data/types';
+import { getLiveStatus, isExpired } from '../utils/date';
 
 export interface ActivitySyncStatus {
   generatedAt: string | null;
@@ -29,6 +30,7 @@ interface ActivityPoolState {
 interface ActivityPoolOptions {
   baseUrl?: string;
   fetcher?: typeof fetch;
+  now?: Date;
 }
 
 function isHttpUrl(value: string): boolean {
@@ -116,10 +118,17 @@ export function useActivityPool(
 
       let liveActivities: LiveActivity[] = [];
       if (activityResult.status === 'fulfilled' && Array.isArray(activityResult.value)) {
-        liveActivities = activityResult.value.filter(isPublishableLiveActivity);
+        const now = options.now ?? new Date();
+        liveActivities = activityResult.value
+          .filter(isPublishableLiveActivity)
+          .filter((activity) => !isExpired(activity, now))
+          .map((activity) => ({
+            ...activity,
+            status: getLiveStatus(activity, now),
+          }));
         const rejectedCount = activityResult.value.length - liveActivities.length;
         if (rejectedCount > 0) {
-          console.warn(`Ignored ${rejectedCount} invalid live activity record(s).`);
+          console.warn(`Ignored ${rejectedCount} invalid or expired live activity record(s).`);
         }
       } else {
         const reason = activityResult.status === 'rejected' ? activityResult.reason : 'response is not an array';
@@ -152,7 +161,7 @@ export function useActivityPool(
       active = false;
       controller.abort();
     };
-  }, [baseUrl, evergreen, fetcher]);
+  }, [baseUrl, evergreen, fetcher, options.now]);
 
   return state;
 }
