@@ -25,7 +25,13 @@ export function Header({ favoriteCount, onOpenFavorites }: HeaderProps) {
         <p className="header-note">不知道去哪玩？鱼丸替你抽一个。</p>
       </div>
       <div className="header-dog" aria-hidden="true">
-        <YuwanMascot state="point" alt="" size="lg" />
+        <YuwanMascot
+          state="point"
+          alt=""
+          size="lg"
+          loading="eager"
+          fetchPriority="high"
+        />
       </div>
     </header>
   );

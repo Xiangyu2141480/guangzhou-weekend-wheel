@@ -49,7 +49,7 @@ export function ActivityPoolStatus({
     >
       <div className="pool-mascot">
         <YuwanMascot
-          state={loading ? 'search' : 'map'}
+          state="map"
           alt={loading ? '正在搜索本周活动的鱼丸' : '拿着地图查看活动池的鱼丸'}
           size="md"
         />

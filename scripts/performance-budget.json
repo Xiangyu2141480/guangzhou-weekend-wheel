@@ -1,0 +1,14 @@
+{
+  "baseline": {
+    "javascriptBytes": 298668,
+    "cssBytes": 18397,
+    "imageBytes": 1835526,
+    "largestImageBytes": 211251
+  },
+  "budget": {
+    "javascriptBytes": 315000,
+    "cssBytes": 20000,
+    "imageBytes": 1900000,
+    "largestImageBytes": 220000
+  }
+}

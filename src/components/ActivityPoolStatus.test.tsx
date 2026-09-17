@@ -23,7 +23,7 @@ test('shows truthful pool, eligible and wheel counts with sync freshness', () =>
   expect(screen.getByRole('img', { name: '拿着地图查看活动池的鱼丸' })).toHaveAttribute('data-mascot-state', 'map');
 });
 
-test('uses the search pose while live activities are loading', () => {
+test('keeps one stable mascot source while live activities are loading', () => {
   render(
     <ActivityPoolStatus
       evergreenCount={189}
@@ -37,7 +37,7 @@ test('uses the search pose while live activities are loading', () => {
   );
 
   expect(screen.getByText('正在看看广州这周有什么新鲜事…')).toBeInTheDocument();
-  expect(screen.getByRole('img', { name: '正在搜索本周活动的鱼丸' })).toHaveAttribute('data-mascot-state', 'search');
+  expect(screen.getByRole('img', { name: '正在搜索本周活动的鱼丸' })).toHaveAttribute('data-mascot-state', 'map');
 });
 
 test('distinguishes degraded and evergreen-only states', () => {

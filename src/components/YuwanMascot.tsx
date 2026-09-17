@@ -7,6 +7,8 @@ interface YuwanMascotProps {
   alt?: string;
   className?: string;
   size?: YuwanMascotSize;
+  loading?: 'eager' | 'lazy';
+  fetchPriority?: 'high' | 'low' | 'auto';
 }
 
 function resolveState(state: YuwanState): YuwanState {
@@ -18,6 +20,8 @@ export function YuwanMascot({
   alt,
   className = '',
   size = 'md',
+  loading = 'lazy',
+  fetchPriority = 'low',
 }: YuwanMascotProps) {
   const resolvedState = resolveState(state);
   return (
@@ -26,7 +30,11 @@ export function YuwanMascot({
       src={YUWAN_SOURCES[resolvedState]}
       alt={alt ?? YUWAN_ALT[resolvedState]}
       data-mascot-state={resolvedState}
+      width={512}
+      height={512}
       decoding="async"
+      loading={loading}
+      fetchPriority={fetchPriority}
       draggable={false}
     />
   );
