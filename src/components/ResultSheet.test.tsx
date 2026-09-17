@@ -41,7 +41,12 @@ test('shows travel, retry and favorite actions without share, copy or download',
     />,
   );
 
-  expect(screen.getByRole('dialog', { name: '命运决定了！' })).toBeInTheDocument();
+  const dialog = screen.getByRole('dialog', { name: '命运决定了！' });
+  expect(dialog).toHaveAttribute('aria-labelledby', 'result-sheet-title');
+  expect(dialog).toHaveAttribute(
+    'aria-describedby',
+    'result-sheet-description result-sheet-source',
+  );
   expect(screen.getByText(activities[0].transport)).toBeInTheDocument();
   expect(screen.getByText(activities[0].budgetLabel)).toBeInTheDocument();
   expect(screen.getByRole('link', { name: '去地图看看' })).toBeInTheDocument();
@@ -99,6 +104,9 @@ test('traps focus, closes on Escape and restores focus to the opener', async () 
 
   const closeButton = screen.getByRole('button', { name: '关闭结果' });
   expect(closeButton).toHaveFocus();
+  expect(opener).toHaveAttribute('inert');
+  expect(opener).toHaveAttribute('aria-hidden', 'true');
+  expect(document.body.style.overflow).toBe('hidden');
   await user.tab({ shift: true });
   expect(screen.getByRole('button', { name: '收藏这个地点' })).toHaveFocus();
   await user.tab();
@@ -106,5 +114,8 @@ test('traps focus, closes on Escape and restores focus to the opener', async () 
 
   await user.keyboard('{Escape}');
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(opener).not.toHaveAttribute('inert');
+  expect(opener).not.toHaveAttribute('aria-hidden');
+  expect(document.body.style.overflow).toBe('');
   expect(opener).toHaveFocus();
 });

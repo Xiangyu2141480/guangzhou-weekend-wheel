@@ -26,8 +26,29 @@ test('renders ten real candidate labels and disables wheel actions while spinnin
   expect(screen.getByLabelText('广州周末随机转盘')).toHaveAttribute('data-selected-index', '3');
   expect(screen.getAllByTestId('wheel-label').every((label) => label.dataset.upright === 'true')).toBe(true);
   expect(screen.getAllByTestId('wheel-label')).toHaveLength(10);
+  const candidateList = screen.getByRole('list', { name: '本轮候选地点' });
+  expect(candidateList).toHaveTextContent(candidates[0].name);
+  expect(candidateList.querySelectorAll('li')).toHaveLength(10);
+  expect(candidateList.querySelector('[aria-current]')).toBeNull();
   expect(screen.getByRole('button', { name: '命运选择中……' })).toBeDisabled();
   expect(screen.getByRole('button', { name: '换一批' })).toBeDisabled();
+});
+
+test('marks the selected candidate for screen readers after spinning', () => {
+  const candidates = activities.slice(0, 3);
+  render(
+    <Wheel
+      candidates={candidates}
+      rotation={1080}
+      duration={3800}
+      selectedIndex={1}
+      isSpinning={false}
+      onSpin={vi.fn()}
+      onReroll={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByText(new RegExp(candidates[1].name))).toHaveAttribute('aria-current', 'true');
 });
 
 test('rerolls candidates without starting the wheel', async () => {

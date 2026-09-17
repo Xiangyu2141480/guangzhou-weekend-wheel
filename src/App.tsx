@@ -59,6 +59,15 @@ export default function App() {
   const favorites = useFavorites();
   const favoriteActivities = activityPool.activities.filter((activity) => favorites.favoriteIds.includes(activity.id));
   const easterEgg = getEasterEgg(wheel.spinCount, wheel.categoryHistory);
+  const announcement = wheel.isSpinning
+    ? '转盘开始转动，正在选择周末去处。'
+    : wheel.selectedActivity
+      ? `抽取结果：${wheel.selectedActivity.name}，地点是${wheel.selectedActivity.venue}。`
+      : !activityPool.loading && activityPool.availability === 'degraded'
+        ? '活动数据已降级，部分实时来源暂不可用，正在使用有效活动数据。'
+        : !activityPool.loading && activityPool.availability === 'evergreen-only'
+          ? '活动数据已降级，当前仅使用常驻灵感。'
+          : '';
   const yuwanState: YuwanState = wheel.isSpinning
     ? 'spin'
     : wheel.selectedActivity
@@ -117,6 +126,15 @@ export default function App() {
       data-evergreen-count={activityPool.evergreenCount}
       data-live-count={activityPool.liveCount}
     >
+      <div
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        data-a11y-announcer
+      >
+        {announcement}
+      </div>
       <div className="doodle doodle-one" aria-hidden="true">✿</div>
       <div className="doodle doodle-two" aria-hidden="true">★</div>
       <Header favoriteCount={favorites.favoriteIds.length} onOpenFavorites={() => setFavoritesOpen(true)} />

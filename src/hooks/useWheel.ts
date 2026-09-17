@@ -13,9 +13,10 @@ interface WheelOptions {
 const CANDIDATE_COUNT = 10;
 const CANDIDATE_HISTORY_LIMIT = CANDIDATE_COUNT * 2;
 const RESULT_HISTORY_LIMIT = 3;
+const REDUCED_MOTION_DURATION = 200;
 
 export function useWheel(items: Activity[], options: WheelOptions = {}) {
-  const duration = options.reducedMotion ? 700 : (options.duration ?? 3800);
+  const duration = options.reducedMotion ? REDUCED_MOTION_DURATION : (options.duration ?? 3800);
   const random = options.random ?? Math.random;
   const [mode, setModeState] = useState<RandomMode>(options.initialMode ?? 'fresh');
   const [lockedCandidates, setLockedCandidates] = useState<Activity[] | null>(null);

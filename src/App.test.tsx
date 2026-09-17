@@ -32,6 +32,27 @@ test('shows the product name and primary spin action', async () => {
   expect(screen.getByRole('heading', { name: '今天去哪汪？' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: '开转！' })).toBeInTheDocument();
   await waitFor(() => expect(screen.getByRole('main')).toHaveAttribute('data-pool-loading', 'false'));
+  expect(screen.getByRole('status')).toHaveTextContent('活动数据已降级，当前仅使用常驻灵感。');
+});
+
+test('announces spin start and the selected result with reduced motion', async () => {
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
+    matches: true,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+  const user = userEvent.setup();
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole('main')).toHaveAttribute('data-pool-loading', 'false'));
+
+  await user.click(screen.getByRole('button', { name: '开转！' }));
+  expect(screen.getByRole('status')).toHaveTextContent('转盘开始转动');
+
+  await waitFor(
+    () => expect(screen.getByRole('status')).toHaveTextContent(/^抽取结果：/),
+    { timeout: 1000 },
+  );
+  expect(screen.getByRole('dialog', { name: '命运决定了！' })).toBeInTheDocument();
 });
 
 test('freezes every round-changing control for the full spin', async () => {

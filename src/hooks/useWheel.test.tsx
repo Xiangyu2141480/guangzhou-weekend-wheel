@@ -106,4 +106,17 @@ describe('useWheel', () => {
     expect(result.current.candidates.map((item) => item.id)).toEqual(lockedIds);
     expect(result.current.rotation).toBe(lockedRotation);
   });
+
+  test('uses the shared short duration when reduced motion is requested', () => {
+    const { result } = renderHook(() =>
+      useWheel(activities.slice(0, 10), { reducedMotion: true }),
+    );
+
+    expect(result.current.duration).toBe(200);
+    act(() => result.current.spin());
+    act(() => vi.advanceTimersByTime(199));
+    expect(result.current.isSpinning).toBe(true);
+    act(() => vi.advanceTimersByTime(1));
+    expect(result.current.isSpinning).toBe(false);
+  });
 });

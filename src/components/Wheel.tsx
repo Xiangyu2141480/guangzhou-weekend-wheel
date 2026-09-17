@@ -37,7 +37,7 @@ function sectorPath(index: number, total: number) {
 
 export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSpinning, onSpin, onReroll }: WheelProps) {
   return (
-    <section className="wheel-stage" aria-label="转盘区域">
+    <section className="wheel-stage" aria-label="转盘区域" aria-describedby="wheel-candidates-title">
       <span className="wheel-scribble wheel-scribble-left" aria-hidden="true">✦</span>
       <span className="wheel-scribble wheel-scribble-right" aria-hidden="true">〰</span>
       <div className="wheel-pointer" aria-hidden="true"><span>🐾</span></div>
@@ -93,6 +93,19 @@ export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSp
       >
         <span aria-hidden="true">🔀</span> 换一批
       </button>
+      <div className="sr-only">
+        <h3 id="wheel-candidates-title">本轮转盘候选，共 {candidates.length} 个</h3>
+        <ol aria-label="本轮候选地点">
+          {candidates.map((candidate, index) => (
+            <li
+              key={candidate.id}
+              aria-current={!isSpinning && selectedIndex === index ? 'true' : undefined}
+            >
+              {candidate.name}，{candidate.district}，{candidate.budgetLabel}
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }

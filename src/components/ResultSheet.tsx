@@ -44,8 +44,17 @@ export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose
   const dialogRef = useDialogFocusTrap<HTMLElement>(onClose);
 
   return (
-    <div className="sheet-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section ref={dialogRef} className="result-sheet" role="dialog" aria-modal="true" aria-label="命运决定了！" data-activity-id={activity.id} tabIndex={-1}>
+    <div className="sheet-backdrop" data-modal-backdrop onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section
+        ref={dialogRef}
+        className="result-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="result-sheet-title"
+        aria-describedby="result-sheet-description result-sheet-source"
+        data-activity-id={activity.id}
+        tabIndex={-1}
+      >
         <button className="sheet-close" type="button" aria-label="关闭结果" onClick={onClose}>×</button>
 
         <div className="ticket-topline" aria-hidden="true"><span>GUANGZHOU</span><b>WEEKEND PASS</b><span>NO. {activity.id.slice(0, 6).toUpperCase()}</span></div>
@@ -55,9 +64,9 @@ export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose
           {activity.priceStatus === 'free' && <span className="sticker sticker-free">免费</span>}
         </div>
         <div className="result-dog"><YuwanMascot state="ticket" alt="举着周末票根的鱼丸" size="lg" /></div>
-        <p className="result-kicker">🐾 命运决定了！</p>
+        <p className="result-kicker" id="result-sheet-title"><span aria-hidden="true">🐾 </span>命运决定了！</p>
         <h2>{activity.name}！</h2>
-        <p className="result-venue">{activity.emoji} {activity.venue}</p>
+        <p className="result-venue" id="result-sheet-description">{activity.emoji} {activity.venue}</p>
 
         {activity.live && <p className="event-schedule"><span aria-hidden="true">📅</span> {getEventSchedule(activity)}</p>}
 
@@ -85,7 +94,7 @@ export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose
           <button type="button" className="soft-button" aria-label={isFavorite ? '取消收藏这个地点' : '收藏这个地点'} aria-pressed={isFavorite} onClick={onFavorite}>{isFavorite ? '♥ 已收藏' : '♡ 收藏'}</button>
         </div>
 
-        <p className="source-note">
+        <p className="source-note" id="result-sheet-source">
           {activity.live ? `活动信息来自${activity.sourceName}，` : '常驻灵感库收录，'}
           费用、开放时间及交通可能变化，出发前请再次确认。
         </p>

@@ -23,6 +23,28 @@ export function useDialogFocusTrap<T extends HTMLElement>(onClose: () => void) {
 
     const previouslyFocused =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const backdrop = dialog.closest<HTMLElement>('[data-modal-backdrop]');
+    const backgroundElements = backdrop?.parentElement
+      ? [...backdrop.parentElement.children].filter(
+          (element): element is HTMLElement =>
+            element instanceof HTMLElement &&
+            element !== backdrop &&
+            !element.hasAttribute('data-a11y-announcer'),
+        )
+      : [];
+    const previousBackgroundState = backgroundElements.map((element) => ({
+      element,
+      inert: element.getAttribute('inert'),
+      ariaHidden: element.getAttribute('aria-hidden'),
+    }));
+    const previousBodyOverflow = document.body.style.overflow;
+
+    backgroundElements.forEach((element) => {
+      element.setAttribute('inert', '');
+      element.setAttribute('aria-hidden', 'true');
+    });
+    document.body.style.overflow = 'hidden';
+
     const getFocusableElements = () =>
       [...dialog.querySelectorAll<HTMLElement>(focusableSelector)];
 
@@ -58,6 +80,13 @@ export function useDialogFocusTrap<T extends HTMLElement>(onClose: () => void) {
     dialog.addEventListener('keydown', handleKeyDown);
     return () => {
       dialog.removeEventListener('keydown', handleKeyDown);
+      previousBackgroundState.forEach(({ element, inert, ariaHidden }) => {
+        if (inert === null) element.removeAttribute('inert');
+        else element.setAttribute('inert', inert);
+        if (ariaHidden === null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', ariaHidden);
+      });
+      document.body.style.overflow = previousBodyOverflow;
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
   }, []);
