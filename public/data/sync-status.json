@@ -1,6 +1,6 @@
 {
   "generatedAt": null,
-  "configuredSources": 3,
+  "configuredSources": 0,
   "successfulSources": 0,
   "failedSources": 0,
   "sourceCounts": {},
@@ -8,6 +8,7 @@
   "invalidCount": 0,
   "expiredCount": 0,
   "duplicateCount": 0,
+  "fallbackCount": 0,
   "finalCount": 0,
   "usedFallback": false,
   "warnings": [

@@ -82,6 +82,8 @@ h1 { margin: 4px 0 0; font-family: 'Gaegu', 'Noto Sans SC', sans-serif; font-siz
 
 .pool-status { display: grid; grid-template-columns: 82px 1fr; align-items: center; min-height: 82px; margin: 0 8px 20px; padding: 7px 12px 7px 5px; border: 2px solid var(--ink); border-radius: 17px 14px 16px 13px; background: #eef7ff; box-shadow: 3px 4px 0 rgba(51,48,45,.12); transform: rotate(-.25deg); }
 .pool-status.is-loading { background: #fff6d9; }
+.pool-status[data-availability='degraded'] { background: #fff6d9; }
+.pool-status[data-availability='evergreen-only'] { background: #f8f5ee; }
 .pool-mascot { display: grid; place-items: center; height: 66px; overflow: hidden; }
 .pool-mascot .yuwan-mascot { width: 78px; }
 .pool-copy { min-width: 0; }
@@ -90,6 +92,7 @@ h1 { margin: 4px 0 0; font-family: 'Gaegu', 'Noto Sans SC', sans-serif; font-siz
 .pool-totals span:first-child::before { content: '📌 '; }
 .pool-totals span:last-child::before { content: '⚡ '; }
 .pool-copy b { display: block; font-size: 13px; }
+.pool-availability { display: inline-block; margin-top: 4px; padding: 2px 6px; border: 1px solid rgba(51,48,45,.28); border-radius: 999px; background: rgba(255,255,255,.66); font-size: 9px; font-weight: 800; }
 .pool-copy small { display: block; margin-top: 3px; color: #756b64; font-size: 9px; }
 
 .wheel-note { margin: 0 4px; padding: 17px 10px 13px; transform: rotate(-.25deg); background: linear-gradient(160deg, #fffdf8 0 65%, #fff8df 100%); }

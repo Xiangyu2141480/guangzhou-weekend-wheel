@@ -1,4 +1,5 @@
 import { YuwanMascot } from './YuwanMascot';
+import type { ActivityPoolAvailability } from '../hooks/useActivityPool';
 
 interface ActivityPoolStatusProps {
   evergreenCount: number;
@@ -7,6 +8,7 @@ interface ActivityPoolStatusProps {
   candidateCount: number;
   loading: boolean;
   generatedAt: string | null;
+  availability: ActivityPoolAvailability;
 }
 
 function formatFreshness(value: string | null): string {
@@ -31,9 +33,20 @@ export function ActivityPoolStatus({
   candidateCount,
   loading,
   generatedAt,
+  availability,
 }: ActivityPoolStatusProps) {
+  const availabilityLabel = {
+    normal: '实时活动正常',
+    degraded: '实时活动降级展示',
+    'evergreen-only': '当前仅使用常驻灵感',
+  }[availability];
+
   return (
-    <aside className={`pool-status ${loading ? 'is-loading' : ''}`} aria-live="polite">
+    <aside
+      className={`pool-status ${loading ? 'is-loading' : ''}`}
+      data-availability={availability}
+      aria-live="polite"
+    >
       <div className="pool-mascot">
         <YuwanMascot
           state={loading ? 'search' : 'map'}
@@ -51,6 +64,7 @@ export function ActivityPoolStatus({
           </div>
         )}
         <b>符合 {eligibleCount} 个 · 本轮 {candidateCount} 个</b>
+        {!loading && <span className="pool-availability">{availabilityLabel}</span>}
         <small>{formatFreshness(generatedAt)}</small>
       </div>
     </aside>

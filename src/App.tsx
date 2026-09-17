@@ -113,6 +113,7 @@ export default function App() {
     <main
       className="app-shell"
       data-pool-loading={activityPool.loading}
+      data-pool-availability={activityPool.availability}
       data-evergreen-count={activityPool.evergreenCount}
       data-live-count={activityPool.liveCount}
     >
@@ -145,6 +146,7 @@ export default function App() {
         candidateCount={wheel.candidates.length}
         loading={activityPool.loading}
         generatedAt={activityPool.syncStatus?.generatedAt ?? null}
+        availability={activityPool.availability}
       />
 
       <section className="wheel-note">

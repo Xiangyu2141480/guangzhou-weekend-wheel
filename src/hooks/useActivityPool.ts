@@ -14,15 +14,19 @@ export interface ActivitySyncStatus {
   invalidCount: number;
   expiredCount: number;
   duplicateCount: number;
+  fallbackCount: number;
   finalCount: number;
   usedFallback: boolean;
   warnings: string[];
 }
 
+export type ActivityPoolAvailability = 'normal' | 'degraded' | 'evergreen-only';
+
 interface ActivityPoolState {
   activities: Activity[];
   liveCount: number;
   evergreenCount: number;
+  availability: ActivityPoolAvailability;
   syncStatus: ActivitySyncStatus | null;
   loading: boolean;
 }
@@ -33,25 +37,34 @@ interface ActivityPoolOptions {
   now?: Date;
 }
 
-function isHttpUrl(value: string): boolean {
+const ISO_DATE_TIME_WITH_ZONE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/u;
+
+function isHttpsUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' || url.protocol === 'http:';
+    return url.protocol === 'https:';
   } catch {
     return false;
   }
 }
 
 function isPublishableLiveActivity(value: unknown): value is LiveActivity {
+  if (!isActivity(value) || !value.live) return false;
+  const start = ISO_DATE_TIME_WITH_ZONE.test(value.eventStart)
+    ? new Date(value.eventStart)
+    : null;
+  const end = value.eventEnd && ISO_DATE_TIME_WITH_ZONE.test(value.eventEnd)
+    ? new Date(value.eventEnd)
+    : null;
   return Boolean(
-    isActivity(value) &&
-      value.live &&
-      value.name.trim() &&
+    value.name.trim() &&
       value.venue.trim() &&
       value.sourceName.trim() &&
-      isHttpUrl(value.sourceUrl) &&
-      !Number.isNaN(new Date(value.eventStart).getTime()) &&
-      (!value.eventEnd || !Number.isNaN(new Date(value.eventEnd).getTime())),
+      isHttpsUrl(value.sourceUrl) &&
+      start &&
+      !Number.isNaN(start.getTime()) &&
+      (!value.eventEnd || (end && !Number.isNaN(end.getTime()) && end >= start)),
   );
 }
 
@@ -63,6 +76,7 @@ function isSyncStatus(value: unknown): value is ActivitySyncStatus {
     typeof status.configuredSources === 'number' &&
     typeof status.successfulSources === 'number' &&
     typeof status.failedSources === 'number' &&
+    typeof status.fallbackCount === 'number' &&
     typeof status.finalCount === 'number' &&
     Array.isArray(status.warnings) &&
     status.sourceCounts !== null &&
@@ -94,6 +108,7 @@ export function useActivityPool(
     activities: evergreen,
     liveCount: 0,
     evergreenCount: evergreen.length,
+    availability: 'evergreen-only',
     syncStatus: null,
     loading: true,
   }));
@@ -152,6 +167,11 @@ export function useActivityPool(
         activities: [...evergreen, ...uniqueLive],
         liveCount: uniqueLive.length,
         evergreenCount: evergreen.length,
+        availability: uniqueLive.length === 0
+          ? 'evergreen-only'
+          : !syncStatus || syncStatus.usedFallback || syncStatus.failedSources > 0
+            ? 'degraded'
+            : 'normal',
         syncStatus,
         loading: false,
       });

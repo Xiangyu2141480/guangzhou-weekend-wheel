@@ -58,6 +58,21 @@ describe('live activity normalization', () => {
       sourceUrl: 'javascript:alert(1)',
     }))).toEqual(expect.arrayContaining(['venue', 'eventStart', 'sourceUrl']));
   });
+
+  it('requires ordered timezone-qualified dates, HTTPS, and an allowed source domain', () => {
+    expect(validateRawActivity(raw({
+      eventStart: '2026-08-31T10:00:00',
+      sourceUrl: 'http://www.gzlib.org.cn/event/1',
+    }), ['gzlib.org.cn'])).toEqual(expect.arrayContaining(['eventStart', 'sourceUrl']));
+    expect(validateRawActivity(raw({
+      eventStart: '2026-09-02T10:00:00+08:00',
+      eventEnd: '2026-09-01T10:00:00+08:00',
+      sourceUrl: 'https://attacker.example/event/1',
+    }), ['gzlib.org.cn'])).toEqual(expect.arrayContaining(['eventEnd', 'sourceUrl']));
+    expect(validateRawActivity(raw({
+      sourceUrl: 'https://events.gzlib.org.cn/event/1',
+    }), ['gzlib.org.cn'])).toEqual([]);
+  });
 });
 
 describe('live activity pipeline decisions', () => {
@@ -92,22 +107,45 @@ describe('live activity pipeline decisions', () => {
     expect(decision.expiredCount).toBe(1);
   });
 
-  it('keeps the previous snapshot after multiple failures and a greater-than-70% drop', () => {
-    const previous = makeLive(50);
-    const current = makeLive(8);
-    expect(selectSnapshot({ previous, current, failedSources: 2 })).toMatchObject({
-      usedFallback: true,
-      activities: previous,
-      warning: 'multiple source failures with >70% drop',
+  it('supplements current records only with previous records from failed sources', () => {
+    const previous = [
+      ...makeLive(2).map((item) => ({ ...item, sourceName: '失败源' })),
+      ...makeLive(2).map((item, index) => ({
+        ...item,
+        id: `healthy-${index}`,
+        fingerprint: `healthy-${index}`,
+        sourceName: '成功源',
+      })),
+    ];
+    const current = makeLive(1).map((item) => ({
+      ...item,
+      id: 'current',
+      fingerprint: 'current',
+      sourceName: '成功源',
+    }));
+    const decision = selectSnapshot({
+      previous,
+      current,
+      failedSourceNames: ['失败源'],
     });
+    expect(decision).toMatchObject({
+      usedFallback: true,
+      fallbackCount: 2,
+    });
+    expect(decision.activities).toHaveLength(3);
+    expect(decision.activities.filter((item) => item.sourceName === '失败源')).toHaveLength(2);
   });
 
-  it('keeps a non-empty previous snapshot when all current records disappear', () => {
+  it('does not reuse records from sources that did not fail', () => {
     const previous = makeLive(4);
-    expect(selectSnapshot({ previous, current: [], failedSources: 1 })).toMatchObject({
-      usedFallback: true,
-      activities: previous,
-      warning: 'all current records unavailable',
+    expect(selectSnapshot({
+      previous,
+      current: [],
+      failedSourceNames: ['另一个来源'],
+    })).toMatchObject({
+      usedFallback: false,
+      fallbackCount: 0,
+      activities: [],
     });
   });
 });

@@ -32,6 +32,7 @@ const syncStatus = {
   invalidCount: 0,
   expiredCount: 0,
   duplicateCount: 0,
+  fallbackCount: 0,
   finalCount: 1,
   usedFallback: false,
   warnings: [],
@@ -69,6 +70,7 @@ describe('useActivityPool', () => {
     );
     expect(result.current.activities).toEqual([...evergreen, liveActivity]);
     expect(result.current.syncStatus).toEqual(syncStatus);
+    expect(result.current.availability).toBe('normal');
   });
 
   it('keeps evergreen activities after fetch failure', async () => {
@@ -80,6 +82,7 @@ describe('useActivityPool', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.activities).toEqual(evergreen);
     expect(result.current.liveCount).toBe(0);
+    expect(result.current.availability).toBe('evergreen-only');
   });
 
   it('drops malformed live records without discarding valid ones', async () => {
@@ -93,6 +96,45 @@ describe('useActivityPool', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.liveCount).toBe(1);
     expect(result.current.activities.at(-1)).toEqual(liveActivity);
+  });
+
+  it('marks a fallback snapshot as degraded', async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(jsonResponse([liveActivity]))
+      .mockResolvedValueOnce(jsonResponse({
+        ...syncStatus,
+        successfulSources: 2,
+        failedSources: 1,
+        fallbackCount: 1,
+        usedFallback: true,
+      }));
+
+    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher, now }));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.availability).toBe('degraded');
+  });
+
+  it('rejects insecure URLs, timezone-less dates, and reversed ranges', async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(jsonResponse([
+        { ...liveActivity, id: 'http', sourceUrl: 'http://example.gov.cn/event/1' },
+        { ...liveActivity, id: 'no-zone', eventStart: '2026-09-05T10:00:00' },
+        {
+          ...liveActivity,
+          id: 'reversed',
+          eventStart: '2026-09-06T10:00:00+08:00',
+          eventEnd: '2026-09-05T18:00:00+08:00',
+        },
+      ]))
+      .mockResolvedValueOnce(jsonResponse({ ...syncStatus, finalCount: 0 }));
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher, now }));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.liveCount).toBe(0);
+    expect(result.current.availability).toBe('evergreen-only');
   });
 
   it('drops expired records and recomputes live statuses at load time', async () => {

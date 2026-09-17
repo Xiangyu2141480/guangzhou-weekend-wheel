@@ -21,6 +21,7 @@ const PRODUCTION_SNAPSHOT_URL =
 
 export interface SourceAdapter {
   name: string;
+  allowedSourceHosts?: readonly string[];
   fetch: (fetchedAt: string) => Promise<unknown[]>;
 }
 
@@ -34,6 +35,7 @@ export interface SyncStatus {
   invalidCount: number;
   expiredCount: number;
   duplicateCount: number;
+  fallbackCount: number;
   finalCount: number;
   usedFallback: boolean;
   warnings: string[];
@@ -52,15 +54,26 @@ export interface RunSyncOptions {
 }
 
 const defaultAdapters: SourceAdapter[] = [
-  { name: '广州图书馆', fetch: fetchGzLibrary },
-  { name: '广州市会展业公共服务平台', fetch: fetchGzExhibition },
-  { name: '广州市文化广电旅游局', fetch: fetchGzCulturePerformances },
+  { name: '广州图书馆', allowedSourceHosts: ['gzlib.org.cn'], fetch: fetchGzLibrary },
+  {
+    name: '广州市会展业公共服务平台',
+    allowedSourceHosts: ['mice-gz.org'],
+    fetch: fetchGzExhibition,
+  },
+  {
+    name: '广州市文化广电旅游局',
+    allowedSourceHosts: ['wglj.gz.gov.cn'],
+    fetch: fetchGzCulturePerformances,
+  },
 ];
 
-function asNormalizedActivity(value: unknown): NormalizedLiveActivity | null {
+function asNormalizedActivity(
+  value: unknown,
+  allowedSourceHosts: readonly string[] = [],
+): NormalizedLiveActivity | null {
   if (!isActivity(value) || !value.live) return null;
   const candidate = value as NormalizedLiveActivity;
-  if (validateRawActivity(candidate).length > 0) return null;
+  if (validateRawActivity(candidate, allowedSourceHosts).length > 0) return null;
   return {
     ...candidate,
     fingerprint:
@@ -70,9 +83,25 @@ function asNormalizedActivity(value: unknown): NormalizedLiveActivity | null {
   };
 }
 
-function validatedActivities(values: unknown[]): NormalizedLiveActivity[] {
+function validatedActivities(
+  values: unknown[],
+  allowedSourceHosts: readonly string[] = [],
+): NormalizedLiveActivity[] {
   return values.flatMap((value) => {
-    const activity = asNormalizedActivity(value);
+    const activity = asNormalizedActivity(value, allowedSourceHosts);
+    return activity ? [activity] : [];
+  });
+}
+
+function validatedPreviousActivities(
+  values: unknown[],
+  adapters: readonly SourceAdapter[],
+): NormalizedLiveActivity[] {
+  return values.flatMap((value) => {
+    if (!isActivity(value) || !value.live) return [];
+    const source = adapters.find((adapter) => adapter.name === value.sourceName);
+    if (!source) return [];
+    const activity = asNormalizedActivity(value, source.allowedSourceHosts);
     return activity ? [activity] : [];
   });
 }
@@ -90,6 +119,7 @@ function createSummary(status: SyncStatus): string {
     ['Invalid', status.invalidCount],
     ['Expired', status.expiredCount],
     ['Duplicates', status.duplicateCount],
+    ['Fallback records', status.fallbackCount],
     ['Final live activities', status.finalCount],
   ];
   const sourceRows = Object.entries(status.sourceCounts)
@@ -139,7 +169,10 @@ export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult>
   const generatedAt = now.toISOString();
   const adapters = options.adapters ?? defaultAdapters;
   const previousValues = await (options.loadPrevious ?? loadPreviousSnapshot)();
-  const previous = validatedActivities(previousValues);
+  const previous = removeExpiredActivities(
+    validatedPreviousActivities(previousValues, adapters),
+    now,
+  ).activities;
   const settled = await Promise.allSettled(
     adapters.map((adapter) => adapter.fetch(generatedAt)),
   );
@@ -147,6 +180,8 @@ export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult>
   const warnings: string[] = [];
   const sourceCounts: Record<string, number> = {};
   const fetched: unknown[] = [];
+  const valid: NormalizedLiveActivity[] = [];
+  const failedSourceNames: string[] = [];
   let successfulSources = 0;
   let failedSources = 0;
 
@@ -156,23 +191,27 @@ export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult>
       successfulSources += 1;
       sourceCounts[source.name] = result.value.length;
       fetched.push(...result.value);
+      valid.push(...validatedActivities(result.value, source.allowedSourceHosts));
       return;
     }
     failedSources += 1;
+    failedSourceNames.push(source.name);
     sourceCounts[source.name] = 0;
     warnings.push(`${source.name}: ${errorMessage(result.reason)}`);
   });
 
-  const valid = validatedActivities(fetched);
   const invalidCount = fetched.length - valid.length;
   const expiry = removeExpiredActivities(valid, now);
   const deduplicated = deduplicateActivities(expiry.activities);
   const snapshot = selectSnapshot({
     previous,
     current: deduplicated.activities,
-    failedSources,
+    failedSourceNames,
   });
   if (snapshot.warning) warnings.push(snapshot.warning);
+  if (adapters.length > 0 && failedSources === adapters.length && snapshot.activities.length === 0) {
+    throw new Error('All live activity sources failed and no valid previous records are available');
+  }
 
   const status: SyncStatus = {
     generatedAt,
@@ -184,11 +223,13 @@ export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult>
     invalidCount,
     expiredCount: expiry.expiredCount,
     duplicateCount: deduplicated.duplicateCount,
+    fallbackCount: snapshot.fallbackCount,
     finalCount: snapshot.activities.length,
     usedFallback: snapshot.usedFallback,
     warnings,
   };
 
+  validateSyncOutput(snapshot.activities, status);
   return {
     activities: snapshot.activities,
     status,
@@ -200,15 +241,79 @@ function prettyJson(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+export function validateSyncOutput(
+  activitiesValue: unknown,
+  statusValue: unknown,
+  sourceAdapters: readonly SourceAdapter[] = [],
+): asserts statusValue is SyncStatus {
+  if (!Array.isArray(activitiesValue)) {
+    throw new TypeError('live activity output must be an array');
+  }
+  const activities = activitiesValue.map((item) => {
+    if (sourceAdapters.length === 0) return asNormalizedActivity(item);
+    if (!isActivity(item) || !item.live) return null;
+    const source = sourceAdapters.find((adapter) => adapter.name === item.sourceName);
+    return source ? asNormalizedActivity(item, source.allowedSourceHosts) : null;
+  });
+  if (activities.some((item) => item === null)) {
+    throw new TypeError('live activity output contains an invalid record');
+  }
+  const fingerprints = activities.map((item) => item!.fingerprint);
+  if (new Set(fingerprints).size !== fingerprints.length) {
+    throw new TypeError('live activity output contains duplicate fingerprints');
+  }
+
+  if (!statusValue || typeof statusValue !== 'object') {
+    throw new TypeError('sync status has an invalid shape');
+  }
+  const status = statusValue as Record<string, unknown>;
+  const countKeys = [
+    'configuredSources',
+    'successfulSources',
+    'failedSources',
+    'fetchedCount',
+    'invalidCount',
+    'expiredCount',
+    'duplicateCount',
+    'fallbackCount',
+    'finalCount',
+  ] as const;
+  if (
+    !(typeof status.generatedAt === 'string' || status.generatedAt === null) ||
+    !countKeys.every((key) => isNonNegativeInteger(status[key])) ||
+    typeof status.usedFallback !== 'boolean' ||
+    !Array.isArray(status.warnings) ||
+    !status.warnings.every((warning) => typeof warning === 'string') ||
+    !status.sourceCounts ||
+    typeof status.sourceCounts !== 'object'
+  ) {
+    throw new TypeError('sync status has an invalid shape');
+  }
+
+  const typedStatus = status as unknown as SyncStatus;
+  const sourceCounts = Object.values(typedStatus.sourceCounts);
+  if (
+    !sourceCounts.every(isNonNegativeInteger) ||
+    sourceCounts.length !== typedStatus.configuredSources ||
+    typedStatus.successfulSources + typedStatus.failedSources !== typedStatus.configuredSources ||
+    sourceCounts.reduce((sum, count) => sum + count, 0) !== typedStatus.fetchedCount ||
+    typedStatus.fetchedCount - typedStatus.invalidCount - typedStatus.expiredCount -
+      typedStatus.duplicateCount + typedStatus.fallbackCount !== typedStatus.finalCount ||
+    typedStatus.finalCount !== activities.length ||
+    typedStatus.usedFallback !== (typedStatus.fallbackCount > 0)
+  ) {
+    throw new TypeError('sync status counts do not match the activity output');
+  }
+}
+
 async function validateCommittedFiles(): Promise<void> {
   const activities = JSON.parse(await readFile(ACTIVITY_OUTPUT, 'utf8')) as unknown;
   const status = JSON.parse(await readFile(STATUS_OUTPUT, 'utf8')) as unknown;
-  if (!Array.isArray(activities) || !activities.every((item) => asNormalizedActivity(item))) {
-    throw new TypeError('public/data/live-activities.json contains an invalid record');
-  }
-  if (!status || typeof status !== 'object' || typeof (status as { finalCount?: unknown }).finalCount !== 'number') {
-    throw new TypeError('public/data/sync-status.json has an invalid shape');
-  }
+  validateSyncOutput(activities, status, defaultAdapters);
 }
 
 async function main(): Promise<void> {
@@ -219,7 +324,7 @@ async function main(): Promise<void> {
   }
 
   const result = await runSync();
-  if (!result.activities.every(isActivity)) throw new TypeError('Generated activity JSON is invalid');
+  validateSyncOutput(result.activities, result.status, defaultAdapters);
   await mkdir(OUTPUT_DIRECTORY, { recursive: true });
   await Promise.all([
     writeFile(ACTIVITY_OUTPUT, prettyJson(result.activities), 'utf8'),
