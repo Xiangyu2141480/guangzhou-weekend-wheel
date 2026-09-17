@@ -101,19 +101,27 @@ npm run qa:e2e           # Playwright Chromium 浏览器流程
 如果当前网络无法下载 Playwright Chromium，可设置
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 指向本机 Chrome 后运行 `npm run qa:e2e`。
 
+当前自动化覆盖包括 26 个 Vitest 文件、102 项单元/组件测试，以及 1 个 Playwright 文件、12 项 E2E 测试。E2E 覆盖 375、390、430、1440 像素视口、转盘结果一致性、收藏持久化、无结果重置、全键盘路径与焦点恢复、reduced-motion、实时数据 404/非法 JSON/全部过期降级、旋转期间延迟数据，以及主页面与弹层的 serious/critical axe 检查；运行时还会拦截非预期的控制台错误、页面异常和同源资源失败。
+
 生产环境使用 `/guangzhou-weekend-wheel/` 作为 Vite base path。前端通过 `import.meta.env.BASE_URL` 读取 JSON，因此 GitHub Pages 子路径和本地开发路径使用同一套代码。
 
 ## 部署与维护
 
 推送到 `main` 后，GitHub Actions 会依次同步活动、运行测试与构建，并部署到现有 GitHub Pages 地址。不要新建仓库或更换 Pages URL。
 
-发布前最低检查：
+完整的 Draft PR、CI、合并、Pages 发布、线上验收与回滚步骤见 [`docs/release-checklist.md`](docs/release-checklist.md)。
+
+发布前完整本地检查：
 
 ```bash
+npm ci
+npm run sync:check
 npm run test:run
 npm run lint
 npm run build
 npm run qa:e2e
+npm audit --omit=dev --audit-level=high
+git diff --check
 ```
 
-建议同时核对 `public/data/sync-status.json` 的成功来源数、最终活动数和告警，并在 375、390、430 与 1440 像素视口确认无水平溢出。
+线上验收可通过 `QA_BASE_URL` 让同一套 Playwright 测试直接指向 Pages。发布时还需核对数据计数、资源加载、控制台和多视口表现；具体门禁与平台安全头限制以发布检查清单为准。
