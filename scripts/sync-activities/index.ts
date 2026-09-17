@@ -1,6 +1,7 @@
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { TRUSTED_ACTIVITY_SOURCE_HOSTS } from '../../src/config/trustedUrls';
 import { isActivity } from '../../src/data/types';
 import { createFingerprint } from './normalize';
 import { deduplicateActivities } from './deduplicate';
@@ -69,7 +70,7 @@ const defaultAdapters: SourceAdapter[] = [
 
 function asNormalizedActivity(
   value: unknown,
-  allowedSourceHosts: readonly string[] = [],
+  allowedSourceHosts: readonly string[] = TRUSTED_ACTIVITY_SOURCE_HOSTS,
 ): NormalizedLiveActivity | null {
   if (!isActivity(value) || !value.live) return null;
   const candidate = value as NormalizedLiveActivity;
@@ -85,7 +86,7 @@ function asNormalizedActivity(
 
 function validatedActivities(
   values: unknown[],
-  allowedSourceHosts: readonly string[] = [],
+  allowedSourceHosts: readonly string[] = TRUSTED_ACTIVITY_SOURCE_HOSTS,
 ): NormalizedLiveActivity[] {
   return values.flatMap((value) => {
     const activity = asNormalizedActivity(value, allowedSourceHosts);

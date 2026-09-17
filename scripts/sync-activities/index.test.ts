@@ -16,7 +16,7 @@ function activity(overrides: Partial<RawActivityRecord> = {}): NormalizedLiveAct
     eventEnd: '2026-09-04T18:00:00+08:00',
     sourceType: 'official',
     sourceName: '测试官方源',
-    sourceUrl: 'https://example.gov.cn/event/1',
+    sourceUrl: 'https://www.gzlib.org.cn/event/1',
     ...overrides,
   }, fetchedAt, now);
 }
@@ -24,7 +24,7 @@ function activity(overrides: Partial<RawActivityRecord> = {}): NormalizedLiveAct
 describe('live activity sync orchestration', () => {
   it('keeps successful sources, validates output, and reports every pipeline count', async () => {
     const valid = activity();
-    const duplicate = activity({ sourceUrl: 'https://example.gov.cn/event/duplicate' });
+    const duplicate = activity({ sourceUrl: 'https://www.gzlib.org.cn/event/duplicate' });
     const expired = activity({
       name: '已结束活动',
       eventStart: '2026-08-20T10:00:00+08:00',
@@ -114,7 +114,10 @@ describe('live activity sync orchestration', () => {
       adapters: [{
         name: '官方源',
         allowedSourceHosts: ['trusted.gov.cn'],
-        fetch: async () => [activity({ sourceUrl: 'https://evil.example/event/1' })],
+        fetch: async () => [{
+          ...activity(),
+          sourceUrl: 'https://evil.example/event/1',
+        }],
       }],
       loadPrevious: async () => [],
       now,

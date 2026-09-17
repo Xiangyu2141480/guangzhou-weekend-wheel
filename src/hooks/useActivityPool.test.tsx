@@ -14,7 +14,7 @@ const liveActivity: LiveActivity = {
   live: true,
   sourceType: 'official',
   sourceName: '测试官方来源',
-  sourceUrl: 'https://example.gov.cn/event/1',
+  sourceUrl: 'https://www.gzlib.org.cn/event/1',
   eventStart: '2026-09-05T10:00:00+08:00',
   eventEnd: '2026-09-05T18:00:00+08:00',
   fetchedAt: '2026-08-31T00:00:00.000Z',
@@ -115,10 +115,11 @@ describe('useActivityPool', () => {
     expect(result.current.availability).toBe('degraded');
   });
 
-  it('rejects insecure URLs, timezone-less dates, and reversed ranges', async () => {
+  it('rejects insecure or untrusted URLs, timezone-less dates, and reversed ranges', async () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(jsonResponse([
         { ...liveActivity, id: 'http', sourceUrl: 'http://example.gov.cn/event/1' },
+        { ...liveActivity, id: 'untrusted', sourceUrl: 'https://attacker.example/event/1' },
         { ...liveActivity, id: 'no-zone', eventStart: '2026-09-05T10:00:00' },
         {
           ...liveActivity,

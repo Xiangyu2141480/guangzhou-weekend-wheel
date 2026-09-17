@@ -81,9 +81,9 @@ export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose
         {activity.tip && <p className="tip"><b>出发提醒：</b>{activity.tip}</p>}
 
         <div className="result-primary-actions">
-          <a className="primary-button" aria-label="去地图看看" href={mapUrl} target="_blank" rel="noreferrer">🐾 就去这里</a>
+          <a className="primary-button" aria-label="去地图看看" href={mapUrl} target="_blank" rel="noopener noreferrer">🐾 就去这里</a>
           {activity.live && (
-            <a className="official-link" aria-label="查看官方详情" href={activity.sourceUrl} target="_blank" rel="noreferrer">
+            <a className="official-link" aria-label="查看官方详情" href={activity.sourceUrl} target="_blank" rel="noopener noreferrer">
               查看官方详情 <span aria-hidden="true">↗</span>
             </a>
           )}

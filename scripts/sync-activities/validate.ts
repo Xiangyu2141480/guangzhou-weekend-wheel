@@ -1,4 +1,8 @@
 import type { RawActivityRecord } from './types';
+import {
+  isTrustedHttpsUrl,
+  TRUSTED_ACTIVITY_SOURCE_HOSTS,
+} from '../../src/config/trustedUrls';
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -6,18 +10,6 @@ function hasText(value: unknown): value is string {
 
 const ISO_DATE_TIME_WITH_ZONE =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(Z|[+-](\d{2}):(\d{2}))$/u;
-
-function isHttpsUrl(value: string, allowedSourceHosts: readonly string[]): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' && (
-      allowedSourceHosts.length === 0 ||
-      allowedSourceHosts.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`))
-    );
-  } catch {
-    return false;
-  }
-}
 
 function isZonedDateTime(value: unknown): value is string {
   if (!hasText(value)) return false;
@@ -43,13 +35,13 @@ function isZonedDateTime(value: unknown): value is string {
 
 export function validateRawActivity(
   record: RawActivityRecord,
-  allowedSourceHosts: readonly string[] = [],
+  allowedSourceHosts: readonly string[] = TRUSTED_ACTIVITY_SOURCE_HOSTS,
 ): string[] {
   const errors: string[] = [];
   if (!hasText(record.name)) errors.push('name');
   if (!hasText(record.venue)) errors.push('venue');
   if (!hasText(record.sourceName)) errors.push('sourceName');
-  if (!hasText(record.sourceUrl) || !isHttpsUrl(record.sourceUrl, allowedSourceHosts)) {
+  if (!hasText(record.sourceUrl) || !isTrustedHttpsUrl(record.sourceUrl, allowedSourceHosts)) {
     errors.push('sourceUrl');
   }
 

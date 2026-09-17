@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getDataUrl } from '../config/pages';
+import { isTrustedHttpsUrl } from '../config/trustedUrls';
 import type { Activity, LiveActivity } from '../data/types';
 import { isActivity } from '../data/types';
 import { getLiveStatus, isExpired } from '../utils/date';
@@ -40,15 +41,6 @@ interface ActivityPoolOptions {
 const ISO_DATE_TIME_WITH_ZONE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/u;
 
-function isHttpsUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
 function isPublishableLiveActivity(value: unknown): value is LiveActivity {
   if (!isActivity(value) || !value.live) return false;
   const start = ISO_DATE_TIME_WITH_ZONE.test(value.eventStart)
@@ -61,7 +53,7 @@ function isPublishableLiveActivity(value: unknown): value is LiveActivity {
     value.name.trim() &&
       value.venue.trim() &&
       value.sourceName.trim() &&
-      isHttpsUrl(value.sourceUrl) &&
+      isTrustedHttpsUrl(value.sourceUrl) &&
       start &&
       !Number.isNaN(start.getTime()) &&
       (!value.eventEnd || (end && !Number.isNaN(end.getTime()) && end >= start)),

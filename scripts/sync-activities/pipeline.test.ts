@@ -81,7 +81,7 @@ describe('live activity pipeline decisions', () => {
     const duplicate = normalizeActivity(raw({
       name: '羊城学堂: 八月讲座之五',
       sourceName: '另一个官方索引',
-      sourceUrl: 'https://example.gov.cn/event/1',
+      sourceUrl: 'https://www.gzlib.org.cn/event/duplicate',
     }), fetchedAt, now);
     const decision = deduplicateActivities([first, duplicate]);
 
