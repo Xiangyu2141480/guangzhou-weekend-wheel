@@ -9,7 +9,10 @@ const focusableSelector = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
-export function useDialogFocusTrap<T extends HTMLElement>(onClose: () => void) {
+export function useDialogFocusTrap<T extends HTMLElement>(
+  onClose: () => void,
+  returnFocusSelector?: string,
+) {
   const dialogRef = useRef<T>(null);
   const onCloseRef = useRef(onClose);
 
@@ -87,9 +90,12 @@ export function useDialogFocusTrap<T extends HTMLElement>(onClose: () => void) {
         else element.setAttribute('aria-hidden', ariaHidden);
       });
       document.body.style.overflow = previousBodyOverflow;
-      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+      const returnFocusTarget = returnFocusSelector
+        ? document.querySelector<HTMLElement>(returnFocusSelector) ?? previouslyFocused
+        : previouslyFocused;
+      if (returnFocusTarget?.isConnected) returnFocusTarget.focus();
     };
-  }, []);
+  }, [returnFocusSelector]);
 
   return dialogRef;
 }

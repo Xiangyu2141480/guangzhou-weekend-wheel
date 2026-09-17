@@ -41,7 +41,7 @@ function getEventSchedule(activity: LiveActivity): string {
 export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose }: ResultSheetProps) {
   const mapUrl = `https://uri.amap.com/search?keyword=${encodeURIComponent(activity.mapKeyword)}`;
   const endingSoon = activity.live && isEndingSoon(activity);
-  const dialogRef = useDialogFocusTrap<HTMLElement>(onClose);
+  const dialogRef = useDialogFocusTrap<HTMLElement>(onClose, '.spin-button');
 
   return (
     <div className="sheet-backdrop" data-modal-backdrop onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
