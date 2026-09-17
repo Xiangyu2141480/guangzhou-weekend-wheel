@@ -38,7 +38,7 @@ describe('useWheel', () => {
     expect(result.current.candidates.every((item) => activities.slice(20, 28).includes(item))).toBe(true);
   });
 
-  test('keeps the selected candidate stable when items change during a spin', () => {
+  test('keeps the full round stable when items change during a spin', () => {
     const initialItems = activities.slice(0, 12);
     const replacementItems = activities.slice(20, 28);
     const { result, rerender } = renderHook(
@@ -54,6 +54,9 @@ describe('useWheel', () => {
     expect(result.current.candidates.map((item) => item.id)).toEqual(lockedIds);
     act(() => vi.advanceTimersByTime(100));
     expect(result.current.selectedActivity).toEqual(preselected);
+    expect(result.current.candidates.map((item) => item.id)).toEqual(lockedIds);
+
+    act(() => result.current.clearResult());
     expect(result.current.candidates.every((item) => replacementItems.includes(item))).toBe(true);
   });
 
@@ -76,7 +79,7 @@ describe('useWheel', () => {
     expect(result.current.recentCandidateIds).toHaveLength(20);
   });
 
-  test('changes mode while idle and ignores reroll while spinning', () => {
+  test('changes mode while idle and rejects every wheel mutation while spinning', () => {
     const { result } = renderHook(() =>
       useWheel(activities.slice(0, 24), { duration: 100 }),
     );
@@ -86,12 +89,21 @@ describe('useWheel', () => {
 
     act(() => result.current.spin());
     const lockedIds = result.current.candidates.map((item) => item.id);
+    const lockedRotation = result.current.rotation;
+    let spunAgain = true;
     let rerolled = true;
+    let changedMode = true;
     act(() => {
+      spunAgain = result.current.spin();
       rerolled = result.current.reroll();
+      changedMode = result.current.setMode('fresh');
     });
 
+    expect(spunAgain).toBe(false);
     expect(rerolled).toBe(false);
+    expect(changedMode).toBe(false);
+    expect(result.current.mode).toBe('fate');
     expect(result.current.candidates.map((item) => item.id)).toEqual(lockedIds);
+    expect(result.current.rotation).toBe(lockedRotation);
   });
 });

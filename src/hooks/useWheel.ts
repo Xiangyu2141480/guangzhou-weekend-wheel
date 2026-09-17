@@ -46,7 +46,7 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
   );
   const candidates =
     lockedCandidates &&
-    (isSpinning || (lockedItems === items && lockedMode === mode))
+    (isSpinning || selectedActivity || (lockedItems === items && lockedMode === mode))
       ? lockedCandidates
       : previewCandidates;
 

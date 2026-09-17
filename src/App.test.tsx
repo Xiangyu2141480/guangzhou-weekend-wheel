@@ -34,7 +34,7 @@ test('shows the product name and primary spin action', async () => {
   await waitFor(() => expect(screen.getByRole('main')).toHaveAttribute('data-pool-loading', 'false'));
 });
 
-test('starts the real wheel and blocks repeated clicks', async () => {
+test('freezes every round-changing control for the full spin', async () => {
   const user = userEvent.setup();
   render(<App />);
   await waitFor(() => expect(screen.getByRole('main')).toHaveAttribute('data-pool-loading', 'false'));
@@ -42,6 +42,11 @@ test('starts the real wheel and blocks repeated clicks', async () => {
   await user.click(screen.getByRole('button', { name: '开转！' }));
 
   expect(screen.getByRole('button', { name: '命运选择中……' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '换一批' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '本周新鲜' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '纯命运' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '运动一下' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '¥100以内' })).toBeDisabled();
 });
 
 test('updates the truthful eligible count when filters change', async () => {

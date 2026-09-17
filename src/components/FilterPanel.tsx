@@ -21,6 +21,7 @@ interface FilterPanelProps {
   onTimeChange: (time: ActivityTimeTag | null) => void;
   onStateToggle: (state: ActivityState) => void;
   onReset: () => void;
+  disabled?: boolean;
 }
 
 const budgets = [50, 100, 200, 300];
@@ -60,12 +61,13 @@ export function FilterPanel({
   onTimeChange,
   onStateToggle,
   onReset,
+  disabled = false,
 }: FilterPanelProps) {
   const hasFilters = selectedCategories.size > 0 || budget !== null || environment !== null ||
     districts.size > 0 || time !== null || states.size > 0;
 
   return (
-    <section className="filter-note" aria-label="偏好筛选">
+    <section className="filter-note" aria-label="偏好筛选" aria-disabled={disabled}>
       <div className="tape tape-pink" aria-hidden="true" />
       <div className="filter-heading">
         <div>
@@ -73,7 +75,7 @@ export function FilterPanel({
           <h2>今天想干嘛？</h2>
         </div>
         {hasFilters && (
-          <button className="text-button" type="button" onClick={onReset} aria-label="清空全部筛选">
+          <button className="text-button" type="button" onClick={onReset} aria-label="清空全部筛选" disabled={disabled}>
             全部清空
           </button>
         )}
@@ -88,6 +90,7 @@ export function FilterPanel({
             key={category.id}
             aria-label={category.label}
             aria-pressed={selectedCategories.has(category.id)}
+            disabled={disabled}
             onClick={() => onCategoryToggle(category.id)}
           >
             <span aria-hidden="true">{category.emoji}</span> {category.label}
@@ -105,6 +108,7 @@ export function FilterPanel({
               key={amount}
               aria-label={`¥${amount}以内`}
               aria-pressed={budget === amount}
+              disabled={disabled}
               onClick={() => onBudgetChange(budget === amount ? null : amount)}
             >
               ¥{amount}以内
@@ -126,6 +130,7 @@ export function FilterPanel({
                   key={state.id}
                   aria-label={state.label}
                   aria-pressed={states.has(state.id)}
+                  disabled={disabled}
                   onClick={() => onStateToggle(state.id)}
                 >
                   <span aria-hidden="true">{state.emoji}</span> {state.label}
@@ -144,6 +149,7 @@ export function FilterPanel({
                   key={district}
                   aria-label={district}
                   aria-pressed={districts.has(district)}
+                  disabled={disabled}
                   onClick={() => onDistrictToggle(district)}
                 >
                   {district.replace(/区$/, '')}
@@ -162,6 +168,7 @@ export function FilterPanel({
                   key={option.id}
                   aria-label={option.label}
                   aria-pressed={time === option.id}
+                  disabled={disabled}
                   onClick={() => onTimeChange(time === option.id ? null : option.id)}
                 >
                   {option.label}
@@ -173,8 +180,8 @@ export function FilterPanel({
           <fieldset>
             <legend>室内还是户外？</legend>
             <div className="chip-row compact">
-              <button className="chip" type="button" aria-label="想出去走走" aria-pressed={environment === 'outdoor'} onClick={() => onEnvironmentChange(environment === 'outdoor' ? null : 'outdoor')}>☀️ 想出去走走</button>
-              <button className="chip" type="button" aria-label="想待室内" aria-pressed={environment === 'indoor'} onClick={() => onEnvironmentChange(environment === 'indoor' ? null : 'indoor')}>🌧️ 想待室内</button>
+              <button className="chip" type="button" aria-label="想出去走走" aria-pressed={environment === 'outdoor'} disabled={disabled} onClick={() => onEnvironmentChange(environment === 'outdoor' ? null : 'outdoor')}>☀️ 想出去走走</button>
+              <button className="chip" type="button" aria-label="想待室内" aria-pressed={environment === 'indoor'} disabled={disabled} onClick={() => onEnvironmentChange(environment === 'indoor' ? null : 'indoor')}>🌧️ 想待室内</button>
             </div>
           </fieldset>
         </div>

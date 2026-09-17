@@ -135,6 +135,7 @@ export default function App() {
         onTimeChange={setTime}
         onStateToggle={toggleState}
         onReset={resetFilters}
+        disabled={wheel.isSpinning}
       />
 
       <ActivityPoolStatus
