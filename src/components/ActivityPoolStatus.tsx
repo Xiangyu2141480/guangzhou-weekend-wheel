@@ -2,6 +2,7 @@ import { YuwanMascot } from './YuwanMascot';
 import type { ActivityPoolAvailability } from '../hooks/useActivityPool';
 
 interface ActivityPoolStatusProps {
+  cityName: string;
   evergreenCount: number;
   liveCount: number;
   eligibleCount: number;
@@ -27,6 +28,7 @@ function formatFreshness(value: string | null): string {
 }
 
 export function ActivityPoolStatus({
+  cityName,
   evergreenCount,
   liveCount,
   eligibleCount,
@@ -37,8 +39,8 @@ export function ActivityPoolStatus({
 }: ActivityPoolStatusProps) {
   const availabilityLabel = {
     normal: '实时活动正常',
-    degraded: '实时活动降级展示',
-    'evergreen-only': '当前仅使用常驻灵感',
+    degraded: `${cityName}部分实时活动暂不可用，当前使用有效活动数据`,
+    'evergreen-only': `${cityName}实时活动暂不可用，当前使用常驻灵感`,
   }[availability];
 
   return (
@@ -56,7 +58,7 @@ export function ActivityPoolStatus({
       </div>
       <div className="pool-copy">
         {loading ? (
-          <p>正在看看广州这周有什么新鲜事…</p>
+          <p>正在看看{cityName}这周有什么新鲜事…</p>
         ) : (
           <div className="pool-totals">
             <span>{evergreenCount} 个常驻灵感</span>

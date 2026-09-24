@@ -12,8 +12,16 @@ const viewports = [
   { width: 1440, height: 900 },
 ];
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('where-to-go:selected-city:v1', 'guangzhou');
+  });
+});
+
 const liveActivity = {
-  id: 'live-e2e-activity',
+  schemaVersion: 2,
+  id: 'event:guangzhou:e2e-activity',
+  cityId: 'guangzhou',
   name: 'E2E 本周限定活动',
   shortName: 'E2E 活动',
   category: 'art',
@@ -31,7 +39,8 @@ const liveActivity = {
   mapKeyword: '广州图书馆',
   transport: '地铁可达',
   live: true,
-  sourceType: 'official',
+  sourceId: 'gz-library',
+  sourceType: 'official-venue',
   sourceName: '广州图书馆',
   sourceUrl: 'https://www.gzlib.org.cn/events/e2e',
   eventStart: '2099-01-01T00:00:00+08:00',
@@ -44,10 +53,13 @@ const liveActivity = {
 for (const viewport of viewports) {
   test(`fits the ${viewport.width}px viewport with the V2 essentials`, async ({ browser }) => {
     const page = await browser.newPage({ viewport });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('where-to-go:selected-city:v1', 'guangzhou');
+    });
     const expectNoRuntimeErrors = monitorRuntime(page);
     await page.goto('./');
 
-    await expect(page.getByRole('heading', { name: '今天去哪汪？' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '今天去哪玩？' })).toBeVisible();
     await expect(page.locator('.header-dog [data-mascot-state="point"]')).toBeVisible();
     await expect(page.locator('details.more-filters')).not.toHaveAttribute('open', '');
     await expect(page.locator('.pool-status')).toContainText(/符合 \d+ 个 · 本轮 10 个/);
@@ -155,6 +167,9 @@ test('shows the result promptly when reduced motion is requested', async ({ brow
     viewport: { width: 390, height: 844 },
     reducedMotion: 'reduce',
   });
+  await page.addInitScript(() => {
+    window.localStorage.setItem('where-to-go:selected-city:v1', 'guangzhou');
+  });
   const expectNoRuntimeErrors = monitorRuntime(page);
   await page.goto('./');
 
@@ -218,7 +233,7 @@ for (const degradedCase of degradedCases) {
     await expect(shell).toHaveAttribute('data-pool-loading', 'false');
     await expect(shell).toHaveAttribute('data-pool-availability', 'evergreen-only');
     await expect(shell).toHaveAttribute('data-live-count', '0');
-    await expect(page.locator('.pool-status')).toContainText('当前仅使用常驻灵感');
+    await expect(page.locator('.pool-status')).toContainText('广州实时活动暂不可用，当前使用常驻灵感');
     await expect(page.getByRole('button', { name: '开转！' })).toBeEnabled();
     expectNoRuntimeErrors();
   });
@@ -229,9 +244,28 @@ test('keeps the locked result consistent when live data arrives during a spin', 
   const liveResponseGate = new Promise<void>((resolve) => {
     releaseLiveResponse = resolve;
   });
-  await page.route('**/data/live-activities.json', async (route) => {
+  await page.route('**/data/cities/guangzhou.json', async (route) => {
     await liveResponseGate;
-    await route.fulfill({ json: [liveActivity] });
+    await route.fulfill({
+      json: {
+        schemaVersion: 2,
+        cityId: 'guangzhou',
+        generatedAt: '2026-09-17T00:00:00+08:00',
+        availability: 'fresh',
+        sources: [],
+        counts: {
+          fetched: 1,
+          invalid: 0,
+          expired: 0,
+          duplicate: 0,
+          current: 1,
+          fallback: 0,
+          final: 1,
+        },
+        warnings: [],
+        activities: [liveActivity],
+      },
+    });
   });
   const expectNoRuntimeErrors = monitorRuntime(page);
   await page.goto('./');

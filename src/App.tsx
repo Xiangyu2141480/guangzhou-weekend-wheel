@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Confetti } from './components/Confetti';
 import { ActivityPoolStatus } from './components/ActivityPoolStatus';
+import { CitySelector } from './components/CitySelector';
 import { YuwanMascot } from './components/YuwanMascot';
 import { FavoritesSheet } from './components/FavoritesSheet';
 import { FilterPanel } from './components/FilterPanel';
@@ -8,7 +9,7 @@ import { Header } from './components/Header';
 import { ModeSwitch } from './components/ModeSwitch';
 import { ResultSheet } from './components/ResultSheet';
 import { Wheel } from './components/Wheel';
-import { CITY_CONFIGS, type CityId } from './data/cities';
+import { getCityConfig, type CityId } from './data/cities';
 import type {
   ActivityCategory,
   ActivityTimeTag,
@@ -38,13 +39,18 @@ export default function App() {
   const [time, setTime] = useState<ActivityTimeTag | null>(null);
   const [states, setStates] = useState<Set<ActivityState>>(new Set());
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [citySelectorOpen, setCitySelectorOpen] = useState(false);
   const { selectedCity, selectCity } = useSelectedCity();
+  const city = selectedCity ? getCityConfig(selectedCity) : null;
   const activityPool = useActivityPool(selectedCity);
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const availableDistricts = useMemo(
-    () => [...new Set(activityPool.activities.map((activity) => activity.district))]
-      .sort((a, b) => a.localeCompare(b, 'zh-CN')),
-    [activityPool.activities],
+    () => {
+      if (!city) return [];
+      const activityDistricts = new Set(activityPool.activities.map((activity) => activity.district));
+      return city.districts.filter((district) => activityDistricts.has(district));
+    },
+    [activityPool.activities, city],
   );
   const filteredActivities = useMemo(
     () => filterActivityPool(activityPool.activities, {
@@ -65,9 +71,9 @@ export default function App() {
     : wheel.selectedActivity
       ? `抽取结果：${wheel.selectedActivity.name}，地点是${wheel.selectedActivity.venue}。`
       : !activityPool.loading && activityPool.availability === 'degraded'
-        ? '活动数据已降级，部分实时来源暂不可用，正在使用有效活动数据。'
+        ? `${city?.name ?? '当前城市'}部分实时活动暂不可用，当前使用有效活动数据。`
         : !activityPool.loading && activityPool.availability === 'evergreen-only'
-          ? '活动数据已降级，当前仅使用常驻灵感。'
+          ? `${city?.name ?? '当前城市'}实时活动暂不可用，当前使用常驻灵感。`
           : '';
   const yuwanState: YuwanState = wheel.isSpinning
     ? 'spin'
@@ -125,25 +131,18 @@ export default function App() {
     setFavoritesOpen(false);
     wheel.reset();
     selectCity(cityId);
+    setCitySelectorOpen(false);
   };
 
-  if (!selectedCity) {
+  if (!selectedCity || !city) {
     return (
-      <main className="app-shell city-test-entry">
-        <h1>选择城市</h1>
-        <p>请选择一个城市开始。</p>
-        <div className="chip-row" aria-label="城市选择">
-          {CITY_CONFIGS.filter((city) => city.enabled).map((city) => (
-            <button
-              className="chip"
-              key={city.id}
-              type="button"
-              onClick={() => changeCity(city.id)}
-            >
-              {city.name}
-            </button>
-          ))}
-        </div>
+      <main className="app-shell city-selection-shell">
+        <CitySelector
+          currentCityId={null}
+          initial
+          onSelect={changeCity}
+          onClose={() => {}}
+        />
       </main>
     );
   }
@@ -168,21 +167,13 @@ export default function App() {
       </div>
       <div className="doodle doodle-one" aria-hidden="true">✿</div>
       <div className="doodle doodle-two" aria-hidden="true">★</div>
-      <div className="chip-row city-test-entry" aria-label="当前城市">
-        {CITY_CONFIGS.filter((city) => city.enabled).map((city) => (
-          <button
-            className="chip"
-            key={city.id}
-            type="button"
-            aria-pressed={city.id === selectedCity}
-            disabled={wheel.isSpinning}
-            onClick={() => changeCity(city.id)}
-          >
-            {city.name}
-          </button>
-        ))}
-      </div>
-      <Header favoriteCount={favorites.favoriteIds.length} onOpenFavorites={() => setFavoritesOpen(true)} />
+      <Header
+        city={city}
+        favoriteCount={favorites.favoriteIds.length}
+        citySwitchDisabled={wheel.isSpinning}
+        onOpenCitySelector={() => setCitySelectorOpen(true)}
+        onOpenFavorites={() => setFavoritesOpen(true)}
+      />
 
       <FilterPanel
         categories={selectedCategories}
@@ -203,6 +194,7 @@ export default function App() {
       />
 
       <ActivityPoolStatus
+        cityName={city.name}
         evergreenCount={activityPool.evergreenCount}
         liveCount={activityPool.liveCount}
         eligibleCount={filteredActivities.length}
@@ -217,7 +209,7 @@ export default function App() {
         <ModeSwitch mode={wheel.mode} onChange={wheel.setMode} disabled={wheel.isSpinning} />
         {filteredActivities.length > 0 ? (
           <>
-            <Wheel candidates={wheel.candidates} rotation={wheel.rotation} duration={wheel.duration} selectedIndex={wheel.selectedIndex} isSpinning={wheel.isSpinning} onSpin={wheel.spin} onReroll={wheel.reroll} />
+            <Wheel city={city} candidates={wheel.candidates} rotation={wheel.rotation} duration={wheel.duration} selectedIndex={wheel.selectedIndex} isSpinning={wheel.isSpinning} onSpin={wheel.spin} onReroll={wheel.reroll} />
             <div className={`wheel-dog ${wheel.isSpinning ? 'is-spinning' : ''}`}><YuwanMascot state={yuwanState} alt={wheel.isSpinning ? '正在晕乎乎转圈的鱼丸' : '陪你决定周末去处的鱼丸'} /></div>
             <p className="spin-hint">{wheel.isSpinning ? '鱼丸正在努力读取命运…' : '按下去，就不许纠结啦'}</p>
           </>
@@ -227,7 +219,7 @@ export default function App() {
       </section>
 
       {easterEgg && <aside className="easter-egg" aria-live="polite">{easterEgg}</aside>}
-      <footer><span>Made with 🐾 in Guangzhou</span><small>地点、费用及营业信息可能变化，出发前请再次确认。</small></footer>
+      <footer><span>今天去哪玩？· 鱼丸陪你发现城市</span><small>地点、费用及营业信息可能变化，出发前请再次确认。</small></footer>
 
       {wheel.selectedActivity && !wheel.isSpinning && (
         <>
@@ -247,6 +239,20 @@ export default function App() {
           currentCityId={selectedCity}
           onRemove={favorites.removeFavorite}
           onClose={() => setFavoritesOpen(false)}
+        />
+      )}
+      {citySelectorOpen && (
+        <CitySelector
+          currentCityId={selectedCity}
+          initial={false}
+          onSelect={(cityId) => {
+            if (cityId === selectedCity) {
+              setCitySelectorOpen(false);
+              return;
+            }
+            changeCity(cityId);
+          }}
+          onClose={() => setCitySelectorOpen(false)}
         />
       )}
     </main>

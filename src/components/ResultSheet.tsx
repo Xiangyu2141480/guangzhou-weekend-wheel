@@ -1,4 +1,5 @@
 import type { Activity, LiveActivity } from '../data/types';
+import { getCityConfig } from '../data/cities';
 import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 import { YuwanMascot } from './YuwanMascot';
 
@@ -39,7 +40,9 @@ function getEventSchedule(activity: LiveActivity): string {
 }
 
 export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose }: ResultSheetProps) {
-  const mapUrl = `https://uri.amap.com/search?keyword=${encodeURIComponent(activity.mapKeyword)}`;
+  const city = getCityConfig(activity.cityId);
+  const mapKeyword = `${city.name} ${activity.venue || activity.mapKeyword}`;
+  const mapUrl = `https://uri.amap.com/search?keyword=${encodeURIComponent(mapKeyword)}`;
   const endingSoon = activity.live && isEndingSoon(activity);
   const dialogRef = useDialogFocusTrap<HTMLElement>(onClose, '.spin-button');
 
@@ -57,7 +60,7 @@ export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose
       >
         <button className="sheet-close" type="button" aria-label="关闭结果" onClick={onClose}>×</button>
 
-        <div className="ticket-topline" aria-hidden="true"><span>GUANGZHOU</span><b>WEEKEND PASS</b><span>NO. {activity.id.slice(0, 6).toUpperCase()}</span></div>
+        <div className="ticket-topline" aria-hidden="true"><span>{city.englishName.toUpperCase()}</span><b>WEEKEND PASS</b><span>NO. {activity.id.slice(0, 6).toUpperCase()}</span></div>
         <div className="ticket-stickers" aria-label="活动标签">
           {activity.live && <span className="sticker sticker-live">本周限定</span>}
           {endingSoon && <span className="sticker sticker-ending">快结束了</span>}
@@ -66,6 +69,7 @@ export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose
         <div className="result-dog"><YuwanMascot state="ticket" alt="举着周末票根的鱼丸" size="lg" /></div>
         <p className="result-kicker" id="result-sheet-title"><span aria-hidden="true">🐾 </span>命运决定了！</p>
         <h2>{activity.name}！</h2>
+        <p className="result-city">{city.name}</p>
         <p className="result-venue" id="result-sheet-description">{activity.emoji} {activity.venue}</p>
 
         {activity.live && <p className="event-schedule"><span aria-hidden="true">📅</span> {getEventSchedule(activity)}</p>}

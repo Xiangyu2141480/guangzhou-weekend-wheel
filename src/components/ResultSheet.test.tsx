@@ -55,6 +55,12 @@ test('shows travel, retry and favorite actions without share, copy or download',
     'rel',
     'noopener noreferrer',
   );
+  expect(screen.getByRole('link', { name: '去地图看看' })).toHaveAttribute(
+    'href',
+    expect.stringContaining(encodeURIComponent(`广州 ${activities[0].venue}`)),
+  );
+  expect(screen.getByText('GUANGZHOU')).toBeInTheDocument();
+  expect(screen.getByText('广州')).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /分享|复制|下载/ })).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: '收藏这个地点' }));
   await user.click(screen.getByRole('button', { name: '不服，再转一次' }));

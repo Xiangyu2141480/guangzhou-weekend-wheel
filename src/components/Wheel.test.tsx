@@ -2,12 +2,14 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, test, vi } from 'vitest';
 import { activities } from '../data/activities';
+import { getCityConfig } from '../data/cities';
 import { Wheel } from './Wheel';
 
 test('renders ten real candidate labels and disables wheel actions while spinning', () => {
   const candidates = activities.slice(0, 10);
   render(
     <Wheel
+      city={getCityConfig('guangzhou')}
       candidates={candidates}
       rotation={1180}
       duration={3800}
@@ -38,6 +40,7 @@ test('marks the selected candidate for screen readers after spinning', () => {
   const candidates = activities.slice(0, 3);
   render(
     <Wheel
+      city={getCityConfig('guangzhou')}
       candidates={candidates}
       rotation={1080}
       duration={3800}
@@ -57,6 +60,7 @@ test('rerolls candidates without starting the wheel', async () => {
   const onReroll = vi.fn();
   render(
     <Wheel
+      city={getCityConfig('guangzhou')}
       candidates={activities.slice(0, 10)}
       rotation={0}
       duration={3800}

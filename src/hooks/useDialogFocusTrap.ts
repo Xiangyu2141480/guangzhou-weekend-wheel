@@ -12,6 +12,7 @@ const focusableSelector = [
 export function useDialogFocusTrap<T extends HTMLElement>(
   onClose: () => void,
   returnFocusSelector?: string,
+  closeOnEscape = true,
 ) {
   const dialogRef = useRef<T>(null);
   const onCloseRef = useRef(onClose);
@@ -54,7 +55,7 @@ export function useDialogFocusTrap<T extends HTMLElement>(
     (getFocusableElements()[0] ?? dialog).focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && closeOnEscape) {
         event.preventDefault();
         onCloseRef.current();
         return;
@@ -95,7 +96,7 @@ export function useDialogFocusTrap<T extends HTMLElement>(
         : previouslyFocused;
       if (returnFocusTarget?.isConnected) returnFocusTarget.focus();
     };
-  }, [returnFocusSelector]);
+  }, [closeOnEscape, returnFocusSelector]);
 
   return dialogRef;
 }

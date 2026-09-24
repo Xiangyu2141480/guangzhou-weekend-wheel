@@ -49,6 +49,9 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 .doodle-two { top: 255px; right: 6px; transform: rotate(12deg); color: #7d9f75; }
 
 .app-header { position: relative; min-height: 196px; padding: 35px 8px 0; text-align: center; }
+.city-trigger { position: absolute; z-index: 3; top: 0; left: 0; display: flex; align-items: center; gap: 5px; min-height: 44px; border: 2px solid var(--ink); border-radius: 999px; padding: 7px 10px; background: var(--paper); box-shadow: 2px 3px 0 rgba(51,48,45,.12); font-size: 12px; cursor: pointer; transform: rotate(-1deg); }
+.city-trigger b { font-weight: 900; }
+.city-trigger:disabled { cursor: wait; opacity: .55; }
 .favorites-trigger { position: absolute; top: 0; right: 0; display: flex; align-items: center; gap: 5px; min-height: 44px; border: 2px solid var(--ink); border-radius: 999px; padding: 7px 10px; background: var(--paper); box-shadow: 2px 3px 0 rgba(51,48,45,.12); font-size: 12px; font-weight: 700; cursor: pointer; transform: rotate(1deg); }
 .favorites-trigger > span:first-child { color: #c65e76; font-size: 19px; line-height: 1; }
 .favorites-trigger b { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 20px; background: var(--pink); line-height: 18px; }
@@ -170,6 +173,7 @@ footer small { font-size: 10px; }
 .result-dog .yuwan-mascot { width: 100%; }
 .result-kicker { display: inline-block; margin: 0; padding: 4px 11px; background: var(--pink); font: 700 17px 'Gaegu','Noto Sans SC',sans-serif; transform: rotate(-1deg); }
 .result-sheet h2 { margin: 11px auto 5px; max-width: 420px; font-size: clamp(23px, 6vw, 31px); line-height: 1.2; }
+.result-city { display: inline-block; margin: 8px 0 3px; padding: 2px 9px; border-radius: 999px; background: var(--blue); font-size: 10px; font-weight: 900; }
 .result-venue { margin: 0 auto 11px; color: #6f655e; font-size: 12px; font-weight: 700; }
 .event-schedule { margin: 0 3px 10px; padding: 7px 9px; border: 1.5px dashed #9b7840; border-radius: 8px; background: #fff6d9; font-size: 10px; font-weight: 800; }
 .result-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
@@ -205,6 +209,23 @@ footer small { font-size: 10px; }
 .favorites-list small { color: #71675f; font-size: 10px; line-height: 1.5; }
 .favorites-list button { min-width: 44px; min-height: 44px; border: 0; background: transparent; font-size: 20px; cursor: pointer; }
 
+.city-selector-backdrop { z-index: 30; align-items: center; }
+.city-selector { position: relative; width: min(100%, 560px); max-height: min(90vh, 720px); overflow: auto; border: 3px solid var(--ink); border-radius: 24px 20px 27px 18px; padding: 30px 24px 24px; background: var(--paper); box-shadow: 8px 9px 0 rgba(51,48,45,.25); text-align: center; animation: sheet-up .3s cubic-bezier(.2,.8,.2,1); }
+.city-selector-eyebrow { display: inline-block; padding: 4px 10px; border-radius: 3px; background: var(--yellow); font: 800 10px 'Gaegu', sans-serif; letter-spacing: .15em; }
+.city-selector h2 { margin: 9px 0 5px; font-size: clamp(28px, 8vw, 38px); }
+.city-selector > p { margin: 0 auto 20px; color: #6f655e; font-size: 13px; }
+.city-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.city-card { display: grid; gap: 3px; min-height: 102px; padding: 14px 10px; border: 2px solid var(--ink); border-radius: 14px 11px 16px 12px; background: #fff; box-shadow: 3px 4px 0 rgba(51,48,45,.12); cursor: pointer; }
+.city-card:nth-child(3n+1) { background: #fff8dc; }
+.city-card:nth-child(3n+2) { background: #fff0f3; }
+.city-card:nth-child(3n) { background: #eef7ff; }
+.city-card:hover { transform: translateY(-2px) rotate(-.5deg); }
+.city-card[aria-pressed='true'] { background: var(--green); box-shadow: inset 0 -4px rgba(51,48,45,.08); }
+.city-card strong { font-size: 22px; }
+.city-card span { color: #756b64; font: 800 9px 'Gaegu', sans-serif; letter-spacing: .13em; }
+.city-card small { font-size: 10px; font-weight: 700; }
+.city-required-note { display: block; margin-top: 16px; color: #756b64; font-size: 10px; }
+
 .confetti { position: fixed; z-index: 22; inset: 0; pointer-events: none; overflow: hidden; }
 .confetti i { position: absolute; top: -20px; font-style: normal; animation: confetti-fall 1.2s ease-out forwards; }
 .confetti i:nth-child(1) { left: 12%; color: #d79d27; animation-delay: .08s; }
@@ -238,6 +259,7 @@ footer small { font-size: 10px; }
   .app-header h1 { font-size: 70px; }
   .header-dog { left: calc(50% - 295px); bottom: -2px; width: 132px; }
   .favorites-trigger { right: 8px; }
+  .city-trigger { left: 8px; }
   .filter-note { grid-column: 1; grid-row: 2; margin: 0; padding: 20px 20px 17px; }
   .pool-status { grid-column: 1; grid-row: 3; margin: 22px 5px 0; }
   .wheel-note { grid-column: 2; grid-row: 2 / span 2; margin: 0; padding: 20px 24px 15px; }
@@ -252,6 +274,9 @@ footer small { font-size: 10px; }
   .app-shell { padding-inline: 10px; }
   .app-header { min-height: 180px; }
   .header-dog { width: 90px; }
+  .city-trigger, .favorites-trigger { padding-inline: 8px; font-size: 11px; }
+  .city-grid { grid-template-columns: 1fr; }
+  .city-card { min-height: 84px; }
   .chip { padding: 7px 9px; font-size: 11px; }
   .wheel-dog { width: 90px; right: -7px; }
   .result-actions { grid-template-columns: 1fr; }

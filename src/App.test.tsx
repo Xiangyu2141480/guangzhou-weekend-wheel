@@ -56,10 +56,10 @@ afterEach(() => {
 test('shows the product name and primary spin action', async () => {
   render(<App />);
 
-  expect(screen.getByRole('heading', { name: '今天去哪汪？' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: '今天去哪玩？' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: '开转！' })).toBeInTheDocument();
   await waitFor(() => expect(screen.getByRole('main')).toHaveAttribute('data-pool-loading', 'false'));
-  expect(screen.getByRole('status')).toHaveTextContent('活动数据已降级，当前仅使用常驻灵感。');
+  expect(screen.getByRole('status')).toHaveTextContent('广州实时活动暂不可用，当前使用常驻灵感。');
 });
 
 test('requires a valid first city and persists the selection', async () => {
@@ -67,7 +67,7 @@ test('requires a valid first city and persists the selection', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  expect(screen.getByRole('heading', { name: '选择城市' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: '先选一座城市' })).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: '上海' }));
 
   await waitFor(() => expect(screen.getByRole('main')).toHaveAttribute('data-city-id', 'shanghai'));
@@ -107,7 +107,7 @@ test('freezes every round-changing control for the full spin', async () => {
   expect(screen.getByRole('button', { name: '纯命运' })).toBeDisabled();
   expect(screen.getByRole('button', { name: '运动一下' })).toBeDisabled();
   expect(screen.getByRole('button', { name: '¥100以内' })).toBeDisabled();
-  expect(screen.getByRole('button', { name: '上海' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '当前城市：广州，点击切换城市' })).toBeDisabled();
 });
 
 test('updates the truthful eligible count when filters change', async () => {
@@ -155,11 +155,13 @@ test('resets filters, candidates, and result when the city changes', async () =>
   await user.click(screen.getByRole('button', { name: '运动一下' }));
   await user.click(screen.getByRole('button', { name: '开转！' }));
   await waitFor(() => expect(screen.getByRole('dialog', { name: '命运决定了！' })).toBeInTheDocument());
-  fireEvent.click(screen.getByRole('button', { name: '上海', hidden: true }));
+  fireEvent.click(screen.getByRole('button', { name: '关闭结果' }));
+  await user.click(screen.getByRole('button', { name: '当前城市：广州，点击切换城市' }));
+  await user.click(screen.getByRole('button', { name: '上海' }));
 
   await waitFor(() => expect(screen.getByRole('main')).toHaveAttribute('data-city-id', 'shanghai'));
   expect(screen.getByRole('button', { name: '运动一下' })).toHaveAttribute('aria-pressed', 'false');
   expect(screen.queryByRole('dialog', { name: '命运决定了！' })).not.toBeInTheDocument();
-  expect(screen.getByLabelText('广州周末随机转盘').getAttribute('data-candidate-ids'))
+  expect(screen.getByLabelText('上海周末随机转盘').getAttribute('data-candidate-ids'))
     .toMatch(/^place:shanghai:/);
 });
