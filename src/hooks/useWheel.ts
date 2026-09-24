@@ -155,6 +155,25 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
     [setSelectedActivity],
   );
 
+  const reset = useCallback(() => {
+    if (spinLockRef.current) return false;
+
+    setLockedCandidates(null);
+    setLockedItems(null);
+    setLockedMode(null);
+    recentCandidateIdsRef.current = [];
+    recentSelectedIdsRef.current = [];
+    setRecentCandidateIds([]);
+    setRecentSelectedIds([]);
+    setSelectedIndex(-1);
+    setSelectedActivity(null);
+    setRotation(0);
+    setSpinCount(0);
+    setCategoryHistory([]);
+    setModeState(options.initialMode ?? 'fresh');
+    return true;
+  }, [options.initialMode]);
+
   return {
     candidates,
     selectedIndex,
@@ -170,6 +189,7 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
     reroll,
     setMode,
     clearResult,
+    reset,
     duration,
   };
 }

@@ -8,14 +8,15 @@ import { Header } from './components/Header';
 import { ModeSwitch } from './components/ModeSwitch';
 import { ResultSheet } from './components/ResultSheet';
 import { Wheel } from './components/Wheel';
-import {
-  activities,
-  type ActivityCategory,
-  type EnvironmentPreference,
-} from './data/activities';
-import type { ActivityTimeTag } from './data/types';
+import { CITY_CONFIGS, type CityId } from './data/cities';
+import type {
+  ActivityCategory,
+  ActivityTimeTag,
+  EnvironmentPreference,
+} from './data/types';
 import { useActivityPool } from './hooks/useActivityPool';
 import { useFavorites } from './hooks/useFavorites';
+import { useSelectedCity } from './hooks/useSelectedCity';
 import { useWheel } from './hooks/useWheel';
 import type { YuwanState } from './constants/mascot';
 import { filterActivityPool, type ActivityState } from './utils/activityPool';
@@ -37,7 +38,8 @@ export default function App() {
   const [time, setTime] = useState<ActivityTimeTag | null>(null);
   const [states, setStates] = useState<Set<ActivityState>>(new Set());
   const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const activityPool = useActivityPool(activities);
+  const { selectedCity, selectCity } = useSelectedCity();
+  const activityPool = useActivityPool(selectedCity);
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const availableDistricts = useMemo(
     () => [...new Set(activityPool.activities.map((activity) => activity.district))]
@@ -118,9 +120,39 @@ export default function App() {
     wheel.spin();
   };
 
+  const changeCity = (cityId: CityId) => {
+    if (wheel.isSpinning || cityId === selectedCity) return;
+    resetFilters();
+    setFavoritesOpen(false);
+    wheel.reset();
+    selectCity(cityId);
+  };
+
+  if (!selectedCity) {
+    return (
+      <main className="app-shell city-test-entry">
+        <h1>选择城市</h1>
+        <p>请选择一个城市开始。</p>
+        <div className="chip-row" aria-label="城市选择">
+          {CITY_CONFIGS.filter((city) => city.enabled).map((city) => (
+            <button
+              className="chip"
+              key={city.id}
+              type="button"
+              onClick={() => changeCity(city.id)}
+            >
+              {city.name}
+            </button>
+          ))}
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main
       className="app-shell"
+      data-city-id={selectedCity}
       data-pool-loading={activityPool.loading}
       data-pool-availability={activityPool.availability}
       data-evergreen-count={activityPool.evergreenCount}
@@ -137,6 +169,20 @@ export default function App() {
       </div>
       <div className="doodle doodle-one" aria-hidden="true">✿</div>
       <div className="doodle doodle-two" aria-hidden="true">★</div>
+      <div className="chip-row city-test-entry" aria-label="当前城市">
+        {CITY_CONFIGS.filter((city) => city.enabled).map((city) => (
+          <button
+            className="chip"
+            key={city.id}
+            type="button"
+            aria-pressed={city.id === selectedCity}
+            disabled={wheel.isSpinning}
+            onClick={() => changeCity(city.id)}
+          >
+            {city.name}
+          </button>
+        ))}
+      </div>
       <Header favoriteCount={favorites.favoriteIds.length} onOpenFavorites={() => setFavoritesOpen(true)} />
 
       <FilterPanel

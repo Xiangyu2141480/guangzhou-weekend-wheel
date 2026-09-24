@@ -119,4 +119,26 @@ describe('useWheel', () => {
     act(() => vi.advanceTimersByTime(1));
     expect(result.current.isSpinning).toBe(false);
   });
+
+  test('resets candidates, result, and both histories while idle', () => {
+    const { result } = renderHook(() =>
+      useWheel(activities.slice(0, 24), { duration: 100, random: () => 0.25 }),
+    );
+
+    act(() => result.current.spin());
+    act(() => vi.advanceTimersByTime(100));
+    expect(result.current.selectedActivity).not.toBeNull();
+    expect(result.current.recentCandidateIds.length).toBeGreaterThan(0);
+    expect(result.current.recentSelectedIds.length).toBeGreaterThan(0);
+
+    act(() => {
+      expect(result.current.reset()).toBe(true);
+    });
+
+    expect(result.current.selectedActivity).toBeNull();
+    expect(result.current.recentCandidateIds).toEqual([]);
+    expect(result.current.recentSelectedIds).toEqual([]);
+    expect(result.current.spinCount).toBe(0);
+    expect(result.current.categoryHistory).toEqual([]);
+  });
 });

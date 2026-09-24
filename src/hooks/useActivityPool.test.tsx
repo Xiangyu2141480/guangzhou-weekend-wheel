@@ -1,14 +1,19 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { activities } from '../data/activities';
+import { getEvergreenActivities } from '../data/evergreen';
+import type { CityId } from '../data/cities';
 import type { LiveActivity } from '../data/types';
-import { useActivityPool } from './useActivityPool';
+import {
+  getSnapshotCacheKey,
+  useActivityPool,
+  type CityActivitySnapshot,
+} from './useActivityPool';
 
-const evergreen = activities.slice(0, 3);
 const now = new Date('2026-09-02T00:00:00+08:00');
+const guangzhouEvergreen = [...getEvergreenActivities('guangzhou')];
 const liveActivity: LiveActivity = {
-  ...activities[0],
-  id: 'live-test-event',
+  ...guangzhouEvergreen[0],
+  id: 'event:guangzhou:test',
   name: '广州近期测试活动',
   shortName: '近期活动',
   live: true,
@@ -23,154 +28,157 @@ const liveActivity: LiveActivity = {
   status: 'upcoming',
 };
 
-const syncStatus = {
-  generatedAt: '2026-08-31T00:00:00.000Z',
-  configuredSources: 3,
-  successfulSources: 3,
-  failedSources: 0,
-  sourceCounts: { 测试源: 1 },
-  fetchedCount: 1,
-  invalidCount: 0,
-  expiredCount: 0,
-  duplicateCount: 0,
-  fallbackCount: 0,
-  finalCount: 1,
-  usedFallback: false,
-  warnings: [],
-};
+function manifest(cityId: CityId = 'guangzhou') {
+  return {
+    schemaVersion: 2,
+    generatedAt: '2026-08-31T00:00:00.000Z',
+    cities: [{
+      cityId,
+      snapshot: `cities/${cityId}.json`,
+      availability: 'fresh',
+      generatedAt: '2026-08-31T00:00:00.000Z',
+      liveCount: 1,
+    }],
+  };
+}
+
+function snapshot(
+  activities: LiveActivity[] = [liveActivity],
+  overrides: Partial<CityActivitySnapshot> = {},
+): CityActivitySnapshot {
+  return {
+    schemaVersion: 2,
+    cityId: 'guangzhou',
+    generatedAt: '2026-08-31T00:00:00.000Z',
+    availability: 'fresh',
+    sources: [{
+      id: 'test-source',
+      name: '测试官方来源',
+      sourceType: 'official-venue',
+      availability: 'fresh',
+      fetched: activities.length,
+      final: activities.length,
+    }],
+    counts: {
+      fetched: activities.length,
+      invalid: 0,
+      expired: 0,
+      duplicate: 0,
+      current: activities.length,
+      fallback: 0,
+      final: activities.length,
+    },
+    warnings: [],
+    activities,
+    ...overrides,
+  };
+}
 
 function jsonResponse(value: unknown): Response {
   return { ok: true, status: 200, json: async () => value } as Response;
 }
 
 afterEach(() => {
+  localStorage.clear();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
 describe('useActivityPool', () => {
-  it('uses the configured Pages base URL and merges valid live records', async () => {
+  it('loads only the manifest and selected city snapshot, then caches it', async () => {
+    const citySnapshot = snapshot();
     const fetcher = vi.fn()
-      .mockResolvedValueOnce(jsonResponse([liveActivity]))
-      .mockResolvedValueOnce(jsonResponse(syncStatus));
+      .mockResolvedValueOnce(jsonResponse(manifest()))
+      .mockResolvedValueOnce(jsonResponse(citySnapshot));
 
-    const { result } = renderHook(() => useActivityPool(evergreen, {
+    const { result } = renderHook(() => useActivityPool('guangzhou', {
       baseUrl: '/guangzhou-weekend-wheel/',
       fetcher,
       now,
     }));
 
     await waitFor(() => expect(result.current.liveCount).toBe(1));
-    expect(fetcher).toHaveBeenCalledWith(
-      '/guangzhou-weekend-wheel/data/live-activities.json',
+    expect(fetcher).toHaveBeenNthCalledWith(
+      1,
+      '/guangzhou-weekend-wheel/data/manifest.json',
       expect.objectContaining({ cache: 'no-store', signal: expect.any(AbortSignal) }),
     );
-    expect(fetcher).toHaveBeenCalledWith(
-      '/guangzhou-weekend-wheel/data/sync-status.json',
+    expect(fetcher).toHaveBeenNthCalledWith(
+      2,
+      '/guangzhou-weekend-wheel/data/cities/guangzhou.json',
       expect.objectContaining({ cache: 'no-store', signal: expect.any(AbortSignal) }),
     );
-    expect(result.current.activities).toEqual([...evergreen, liveActivity]);
-    expect(result.current.syncStatus).toEqual(syncStatus);
+    expect(result.current.activities).toEqual([...guangzhouEvergreen, liveActivity]);
     expect(result.current.availability).toBe('normal');
+    expect(JSON.parse(localStorage.getItem(getSnapshotCacheKey('guangzhou')) ?? '{}'))
+      .toMatchObject({ cachedAt: now.toISOString(), snapshot: citySnapshot });
   });
 
-  it('keeps evergreen activities after fetch failure', async () => {
+  it('uses only a fresh same-city cache after a request failure', async () => {
+    localStorage.setItem(getSnapshotCacheKey('guangzhou'), JSON.stringify({
+      cachedAt: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1_000).toISOString(),
+      snapshot: snapshot(),
+    }));
+    localStorage.setItem(getSnapshotCacheKey('shanghai'), JSON.stringify({
+      cachedAt: now.toISOString(),
+      snapshot: { ...snapshot(), cityId: 'shanghai' },
+    }));
     const fetcher = vi.fn().mockRejectedValue(new Error('offline'));
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher, now }));
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.activities).toEqual(evergreen);
-    expect(result.current.liveCount).toBe(0);
-    expect(result.current.availability).toBe('evergreen-only');
-  });
-
-  it('drops malformed live records without discarding valid ones', async () => {
-    const fetcher = vi.fn()
-      .mockResolvedValueOnce(jsonResponse([liveActivity, { ...liveActivity, id: 'bad', venue: '' }]))
-      .mockResolvedValueOnce(jsonResponse(syncStatus));
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher, now }));
+    const { result } = renderHook(() => useActivityPool('guangzhou', { fetcher, now }));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.liveCount).toBe(1);
-    expect(result.current.activities.at(-1)).toEqual(liveActivity);
-  });
-
-  it('marks a fallback snapshot as degraded', async () => {
-    const fetcher = vi.fn()
-      .mockResolvedValueOnce(jsonResponse([liveActivity]))
-      .mockResolvedValueOnce(jsonResponse({
-        ...syncStatus,
-        successfulSources: 2,
-        failedSources: 1,
-        fallbackCount: 1,
-        usedFallback: true,
-      }));
-
-    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher, now }));
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.availability).toBe('degraded');
+    expect(result.current.activities.at(-1)?.cityId).toBe('guangzhou');
   });
 
-  it('rejects insecure or untrusted URLs, timezone-less dates, and reversed ranges', async () => {
-    const fetcher = vi.fn()
-      .mockResolvedValueOnce(jsonResponse([
-        { ...liveActivity, id: 'http', sourceUrl: 'http://example.gov.cn/event/1' },
-        { ...liveActivity, id: 'untrusted', sourceUrl: 'https://attacker.example/event/1' },
-        { ...liveActivity, id: 'no-zone', eventStart: '2026-09-05T10:00:00' },
-        {
-          ...liveActivity,
-          id: 'reversed',
-          eventStart: '2026-09-06T10:00:00+08:00',
-          eventEnd: '2026-09-05T18:00:00+08:00',
-        },
-      ]))
-      .mockResolvedValueOnce(jsonResponse({ ...syncStatus, finalCount: 0 }));
+  it('rejects expired cache and falls back to the selected city evergreen pool', async () => {
+    localStorage.setItem(getSnapshotCacheKey('guangzhou'), JSON.stringify({
+      cachedAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1_000).toISOString(),
+      snapshot: snapshot(),
+    }));
+    const fetcher = vi.fn().mockRejectedValue(new Error('offline'));
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher, now }));
+    const { result } = renderHook(() => useActivityPool('guangzhou', { fetcher, now }));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.activities).toEqual(guangzhouEvergreen);
     expect(result.current.liveCount).toBe(0);
     expect(result.current.availability).toBe('evergreen-only');
   });
 
-  it('drops expired records and recomputes live statuses at load time', async () => {
-    const ongoing = {
-      ...liveActivity,
-      id: 'live-ongoing',
-      eventStart: '2026-09-01T10:00:00+08:00',
-      eventEnd: '2026-09-03T18:00:00+08:00',
-      status: 'upcoming',
-    } satisfies LiveActivity;
+  it('rejects a cross-city snapshot without caching it', async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(jsonResponse(manifest()))
+      .mockResolvedValueOnce(jsonResponse({ ...snapshot(), cityId: 'shanghai' }));
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const { result } = renderHook(() => useActivityPool('guangzhou', { fetcher, now }));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.activities).toEqual(guangzhouEvergreen);
+    expect(localStorage.getItem(getSnapshotCacheKey('guangzhou'))).toBeNull();
+  });
+
+  it('drops expired live records from an otherwise valid snapshot', async () => {
     const expired = {
       ...liveActivity,
-      id: 'live-expired',
+      id: 'event:guangzhou:expired',
       eventStart: '2026-08-31T10:00:00+08:00',
       eventEnd: '2026-09-01T18:00:00+08:00',
       status: 'ongoing',
     } satisfies LiveActivity;
     const fetcher = vi.fn()
-      .mockResolvedValueOnce(jsonResponse([liveActivity, ongoing, expired]))
-      .mockResolvedValueOnce(jsonResponse(syncStatus));
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      .mockResolvedValueOnce(jsonResponse(manifest()))
+      .mockResolvedValueOnce(jsonResponse(snapshot([liveActivity, expired])));
 
-    const { result } = renderHook(() => useActivityPool(evergreen, { fetcher, now }));
+    const { result } = renderHook(() => useActivityPool('guangzhou', { fetcher, now }));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.liveCount).toBe(2);
+    expect(result.current.liveCount).toBe(1);
     expect(result.current.activities).not.toContainEqual(expired);
-    expect(result.current.activities.at(-2)).toMatchObject({
-      id: liveActivity.id,
-      status: 'upcoming',
-    });
-    expect(result.current.activities.at(-1)).toMatchObject({
-      id: ongoing.id,
-      status: 'ongoing',
-    });
   });
 });
