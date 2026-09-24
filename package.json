@@ -13,6 +13,7 @@
     "sync:activities": "tsx scripts/sync-activities/index.ts --all",
     "sync:city": "tsx scripts/sync-activities/index.ts --city",
     "sync:check": "tsx scripts/sync-activities/index.ts --validate-only",
+    "test:data": "vitest run src/data scripts/sync-activities",
     "qa:e2e": "playwright test",
     "preview": "vite preview"
   },

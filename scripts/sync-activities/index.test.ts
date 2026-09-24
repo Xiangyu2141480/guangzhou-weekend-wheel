@@ -422,10 +422,16 @@ describe('city-aware source selection', () => {
           current: 0, fallback: 0, final: 0,
         },
       });
-    const summary = createDeploymentSummary(createManifest(snapshots), snapshots);
+    const summary = createDeploymentSummary(
+      createManifest(snapshots),
+      snapshots,
+      '0123456789abcdef',
+    );
 
-    expect(summary).toContain('| guangzhou | fresh | 1/1 | 1 | 0 | 1 |');
-    expect(summary).toContain('| guangzhou | 测试官方源 | fresh | 1 | 1 |');
-    expect(summary).toContain('Oldest verified');
+    expect(summary).toContain('Commit SHA: `0123456789abcdef`');
+    expect(summary).toContain('| guangzhou | fresh | 1 | 0 | 1 | 0 | 1 |');
+    expect(summary).toContain('| guangzhou | 测试官方源 | success | fresh | 1 | 1 |');
+    expect(summary).toContain('| beijing | evergreen-only | 0 | 0 | 0 | 0 | 0 |');
+    expect(summary).toContain('Oldest lastVerifiedAt');
   });
 });

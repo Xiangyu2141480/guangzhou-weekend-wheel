@@ -218,32 +218,39 @@ export function createSummary(status: SyncStatus): string {
 export function createDeploymentSummary(
   manifest: ActivityManifest,
   snapshots: readonly CityActivitySnapshot[],
+  commitSha = process.env.GITHUB_SHA,
 ): string {
   const cityRows = snapshots.map((snapshot) => {
     const oldestVerifiedAt = snapshot.activities.reduce<string | null>((oldest, activity) =>
       !oldest || activity.lastVerifiedAt < oldest ? activity.lastVerifiedAt : oldest, null);
-    return `| ${snapshot.cityId} | ${snapshot.availability} | ${snapshot.sources.filter((source) =>
-      source.availability === 'fresh').length}/${snapshot.sources.length} | ` +
+    const successfulSources = snapshot.sources.filter((source) =>
+      source.availability === 'fresh').length;
+    return `| ${snapshot.cityId} | ${snapshot.availability} | ${successfulSources} | ` +
+      `${snapshot.sources.length - successfulSources} | ` +
       `${snapshot.counts.current} | ${snapshot.counts.fallback} | ${snapshot.counts.final} | ` +
       `${oldestVerifiedAt ?? '—'} |`;
   });
-  const sourceRows = snapshots.flatMap((snapshot) => snapshot.sources.map((source) =>
-    `| ${snapshot.cityId} | ${source.name} | ${source.availability} | ` +
-    `${source.fetched} | ${source.final} |`));
+  const sourceRows = snapshots.flatMap((snapshot) => snapshot.sources.map((source) => {
+    const fetchResult = source.availability === 'fresh' ? 'success' : 'failure';
+    return `| ${snapshot.cityId} | ${source.name} | ${fetchResult} | ` +
+      `${source.availability} | ${source.fetched} | ${source.final} |`;
+  }));
   const warnings = snapshots.flatMap((snapshot) =>
     snapshot.warnings.map((warning) => `- ${snapshot.cityId}: ${warning}`));
 
   return [
     '## 鱼丸出门部 · Atomic activity snapshots',
     '',
+    `Commit SHA: \`${commitSha ?? 'unknown'}\``,
+    '',
     `Manifest generated: ${manifest.generatedAt ?? 'bootstrap'}`,
     '',
-    '| City | Availability | Sources fresh | Current | Fallback | Final | Oldest verified |',
-    '| --- | --- | ---: | ---: | ---: | ---: | --- |',
+    '| City | Availability | Sources succeeded | Sources failed | Current | Fallback | Final | Oldest lastVerifiedAt |',
+    '| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |',
     ...cityRows,
     '',
-    '| City | Source | Availability | Fetched | Final |',
-    '| --- | --- | --- | ---: | ---: |',
+    '| City | Source | Fetch result | Availability | Fetched | Final |',
+    '| --- | --- | --- | --- | ---: | ---: |',
     ...sourceRows,
     '',
     'Warnings:',
