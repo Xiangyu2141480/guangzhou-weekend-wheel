@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "cityId": "shenzhen",
+  "generatedAt": null,
+  "availability": "evergreen-only",
+  "sources": [
+    {
+      "id": "shenzhen-culture-events",
+      "name": "深圳市文化广电旅游体育局",
+      "sourceType": "government",
+      "availability": "unavailable",
+      "fetched": 0,
+      "final": 0
+    }
+  ],
+  "counts": {
+    "fetched": 0,
+    "invalid": 0,
+    "expired": 0,
+    "duplicate": 0,
+    "current": 0,
+    "fallback": 0,
+    "final": 0
+  },
+  "warnings": [
+    "Live activity synchronization has not run yet."
+  ],
+  "activities": []
+}

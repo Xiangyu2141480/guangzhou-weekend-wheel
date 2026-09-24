@@ -143,6 +143,7 @@ describe('live activity pipeline decisions', () => {
       current,
       failedSources: [{ id: 'failed', cityId: 'guangzhou' }],
       cityIds: ['guangzhou'],
+      now,
     });
     expect(decision).toMatchObject({
       usedFallback: true,
@@ -159,6 +160,28 @@ describe('live activity pipeline decisions', () => {
       current: [],
       failedSources: [{ id: 'another', cityId: 'guangzhou' }],
       cityIds: ['guangzhou'],
+    })).toMatchObject({
+      usedFallback: false,
+      fallbackCount: 0,
+      activities: [],
+    });
+  });
+
+  it('does not publish fallback records last verified more than seven days ago', () => {
+    const previous = makeLive(1).map((item) => ({
+      ...item,
+      sourceId: 'failed',
+      sourceName: '失败源',
+      fetchedAt: '2026-08-22T03:59:59.000Z',
+      lastVerifiedAt: '2026-08-22T03:59:59.000Z',
+    }));
+
+    expect(selectSnapshot({
+      previous,
+      current: [],
+      failedSources: [{ id: 'failed', cityId: 'guangzhou' }],
+      cityIds: ['guangzhou'],
+      now,
     })).toMatchObject({
       usedFallback: false,
       fallbackCount: 0,

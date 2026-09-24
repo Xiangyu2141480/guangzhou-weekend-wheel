@@ -1,14 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { CityId } from '../../src/data/cities';
 import { isActivity } from '../../src/data/types';
 import { normalizeActivity } from './normalize';
 import {
   defaultAdapters,
+  createCitySnapshot,
+  createDeploymentSummary,
   parseCliArgs,
   runCli,
+  runPublication,
   runSync,
   selectAdapters,
+  validateCommittedFiles,
   validateSyncOutput,
 } from './index';
+import { createManifest } from './snapshot';
 import type {
   NormalizedLiveActivity,
   RawActivityRecord,
@@ -156,8 +162,8 @@ describe('live activity sync orchestration', () => {
     expect(result.status.warnings[0]).toContain('empty result');
   });
 
-  it('fails when every source fails and no non-expired previous record exists', async () => {
-    await expect(runSync({
+  it('returns an empty live pool when every source fails and no valid fallback exists', async () => {
+    const result = await runSync({
       adapters: [
         adapter({
           id: 'failed-one',
@@ -177,7 +183,15 @@ describe('live activity sync orchestration', () => {
         eventEnd: '2026-08-20T18:00:00+08:00',
       })],
       now,
-    })).rejects.toThrow('All live activity sources failed');
+    });
+
+    expect(result.activities).toEqual([]);
+    expect(result.status).toMatchObject({
+      successfulSources: 0,
+      failedSources: 2,
+      fallbackCount: 0,
+      finalCount: 0,
+    });
   });
 
   it('rejects records outside the configured source domain', async () => {
@@ -207,6 +221,7 @@ describe('live activity sync orchestration', () => {
       configuredSources: 1,
       successfulSources: 1,
       failedSources: 0,
+      failedSourceIds: [],
       sourceCounts: { 测试源: 1 },
       fetchedCount: 1,
       invalidCount: 0,
@@ -281,6 +296,39 @@ describe('city-aware source selection', () => {
     expect(result.activities.every((item) => item.cityId === 'guangzhou')).toBe(true);
   });
 
+  it('publishes an atomic bootstrap snapshot for all five cities', async () => {
+    const adapters = ([
+      ['beijing', 'beijing-source'],
+      ['shanghai', 'shanghai-source'],
+      ['guangzhou', 'guangzhou-source'],
+      ['shenzhen', 'shenzhen-source'],
+      ['suzhou', 'suzhou-source'],
+    ] as const).map(([cityId, id]) => adapter({
+      id,
+      cityId,
+      name: `${cityId} source`,
+      fetch: async () => [],
+    }));
+
+    const result = await runPublication(
+      ['beijing', 'shanghai', 'guangzhou', 'shenzhen', 'suzhou'],
+      { adapters, loadPrevious: async () => [], now },
+    );
+
+    expect(result.manifest.schemaVersion).toBe(2);
+    expect(result.manifest.cities.map((city) => city.cityId)).toEqual([
+      'beijing', 'shanghai', 'guangzhou', 'shenzhen', 'suzhou',
+    ]);
+    expect(result.snapshots).toHaveLength(5);
+    expect(result.snapshots.every((snapshot) =>
+      snapshot.availability === 'evergreen-only' &&
+      snapshot.activities.length === 0
+    )).toBe(true);
+    expect(result.compatibilityActivities).toEqual(
+      result.snapshots.find((snapshot) => snapshot.cityId === 'guangzhou')?.activities,
+    );
+  });
+
   it('keeps current and fallback records isolated by city and source', async () => {
     const shanghaiPrevious = activity({
       name: '上海旧活动',
@@ -336,13 +384,48 @@ describe('city-aware source selection', () => {
 
   it('keeps validate-only read-only and does not start synchronization', async () => {
     const validateFiles = vi.fn(async () => undefined);
-    const sync = vi.fn();
+    const publish = vi.fn();
     const write = vi.fn();
 
-    await runCli(['--validate-only'], { validateFiles, sync, write });
+    await runCli(['--validate-only'], { validateFiles, publish, write });
 
     expect(validateFiles).toHaveBeenCalledOnce();
-    expect(sync).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
     expect(write).not.toHaveBeenCalled();
+  });
+
+  it('validates the committed manifest, five bootstrap snapshots, and Guangzhou compatibility', async () => {
+    await expect(validateCommittedFiles()).resolves.toBeUndefined();
+  });
+
+  it('exposes per-city and per-source deployment summary data', async () => {
+    const result = await runSync({
+      adapters: [adapter({ fetch: async () => [activity()] })],
+      cityIds: ['guangzhou'],
+      loadPrevious: async () => [],
+      now,
+    });
+    const citySnapshot = createCitySnapshot(result, 'guangzhou', [adapter()]);
+    const cityIds: CityId[] = [
+      'beijing', 'shanghai', 'guangzhou', 'shenzhen', 'suzhou',
+    ];
+    const snapshots = cityIds.map((cityId) => cityId === 'guangzhou'
+      ? citySnapshot
+      : {
+        ...citySnapshot,
+        cityId,
+        sources: [],
+        activities: [],
+        availability: 'evergreen-only' as const,
+        counts: {
+          fetched: 0, invalid: 0, expired: 0, duplicate: 0,
+          current: 0, fallback: 0, final: 0,
+        },
+      });
+    const summary = createDeploymentSummary(createManifest(snapshots), snapshots);
+
+    expect(summary).toContain('| guangzhou | fresh | 1/1 | 1 | 0 | 1 |');
+    expect(summary).toContain('| guangzhou | 测试官方源 | fresh | 1 | 1 |');
+    expect(summary).toContain('Oldest verified');
   });
 });

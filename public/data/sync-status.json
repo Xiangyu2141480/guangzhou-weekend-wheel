@@ -3,10 +3,19 @@
   "cityIds": [
     "guangzhou"
   ],
-  "configuredSources": 0,
+  "configuredSources": 3,
   "successfulSources": 0,
-  "failedSources": 0,
-  "sourceCounts": {},
+  "failedSources": 3,
+  "failedSourceIds": [
+    "gz-library",
+    "gz-exhibition",
+    "gz-culture-performances"
+  ],
+  "sourceCounts": {
+    "gz-library": 0,
+    "gz-exhibition": 0,
+    "gz-culture-performances": 0
+  },
   "fetchedCount": 0,
   "invalidCount": 0,
   "expiredCount": 0,

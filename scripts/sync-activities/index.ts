@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { CITY_IDS, isCityId, type CityId } from '../../src/data/cities';
@@ -15,19 +15,31 @@ import type {
   SourceAdapter,
 } from './types';
 import { validateRawActivity } from './validate';
+import {
+  createManifest,
+  deriveAvailability,
+  validateCitySnapshot,
+  validateManifest,
+  type ActivityManifest,
+  type CityActivitySnapshot,
+  type SnapshotSource,
+} from './snapshot';
 
 const OUTPUT_DIRECTORY = resolve('public/data');
+const CITY_OUTPUT_DIRECTORY = resolve(OUTPUT_DIRECTORY, 'cities');
+const MANIFEST_OUTPUT = resolve(OUTPUT_DIRECTORY, 'manifest.json');
 const ACTIVITY_OUTPUT = resolve(OUTPUT_DIRECTORY, 'live-activities.json');
 const STATUS_OUTPUT = resolve(OUTPUT_DIRECTORY, 'sync-status.json');
-const PRODUCTION_SNAPSHOT_URL =
-  'https://xiangyu2141480.github.io/guangzhou-weekend-wheel/data/live-activities.json';
+const PRODUCTION_DATA_URL =
+  'https://xiangyu2141480.github.io/guangzhou-weekend-wheel/data';
 
 export interface SyncStatus {
-  generatedAt: string;
+  generatedAt: string | null;
   cityIds: CityId[];
   configuredSources: number;
   successfulSources: number;
   failedSources: number;
+  failedSourceIds: string[];
   sourceCounts: Record<string, number>;
   fetchedCount: number;
   invalidCount: number;
@@ -42,6 +54,14 @@ export interface SyncStatus {
 export interface SyncResult {
   activities: NormalizedLiveActivity[];
   status: SyncStatus;
+  summary: string;
+}
+
+export interface PublicationResult {
+  manifest: ActivityManifest;
+  snapshots: CityActivitySnapshot[];
+  compatibilityActivities: NormalizedLiveActivity[];
+  compatibilityStatus: SyncStatus;
   summary: string;
 }
 
@@ -88,7 +108,13 @@ function normalizeFetchedActivities(
 ): NormalizedLiveActivity[] {
   return values.flatMap((value) => {
     const normalized = asNormalizedActivity(value, adapter);
-    if (normalized) return [normalized];
+    if (normalized) {
+      return [{
+        ...normalized,
+        fetchedAt,
+        lastVerifiedAt: fetchedAt,
+      }];
+    }
     if (isActivity(value) && value.live) return [];
     if (!value || typeof value !== 'object') return [];
     const raw = value as RawActivityRecord;
@@ -149,7 +175,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function createSummary(status: SyncStatus): string {
+export function createSummary(status: SyncStatus): string {
   const rows = [
     ['Configured sources', status.configuredSources],
     ['Successful sources', status.successfulSources],
@@ -189,17 +215,68 @@ function createSummary(status: SyncStatus): string {
   ].join('\n');
 }
 
-async function loadPreviousSnapshot(): Promise<unknown[]> {
+export function createDeploymentSummary(
+  manifest: ActivityManifest,
+  snapshots: readonly CityActivitySnapshot[],
+): string {
+  const cityRows = snapshots.map((snapshot) => {
+    const oldestVerifiedAt = snapshot.activities.reduce<string | null>((oldest, activity) =>
+      !oldest || activity.lastVerifiedAt < oldest ? activity.lastVerifiedAt : oldest, null);
+    return `| ${snapshot.cityId} | ${snapshot.availability} | ${snapshot.sources.filter((source) =>
+      source.availability === 'fresh').length}/${snapshot.sources.length} | ` +
+      `${snapshot.counts.current} | ${snapshot.counts.fallback} | ${snapshot.counts.final} | ` +
+      `${oldestVerifiedAt ?? '—'} |`;
+  });
+  const sourceRows = snapshots.flatMap((snapshot) => snapshot.sources.map((source) =>
+    `| ${snapshot.cityId} | ${source.name} | ${source.availability} | ` +
+    `${source.fetched} | ${source.final} |`));
+  const warnings = snapshots.flatMap((snapshot) =>
+    snapshot.warnings.map((warning) => `- ${snapshot.cityId}: ${warning}`));
+
+  return [
+    '## 鱼丸出门部 · Atomic activity snapshots',
+    '',
+    `Manifest generated: ${manifest.generatedAt ?? 'bootstrap'}`,
+    '',
+    '| City | Availability | Sources fresh | Current | Fallback | Final | Oldest verified |',
+    '| --- | --- | ---: | ---: | ---: | ---: | --- |',
+    ...cityRows,
+    '',
+    '| City | Source | Availability | Fetched | Final |',
+    '| --- | --- | --- | ---: | ---: |',
+    ...sourceRows,
+    '',
+    'Warnings:',
+    ...(warnings.length > 0 ? warnings : ['- None']),
+    '',
+  ].join('\n');
+}
+
+async function loadPreviousSnapshot(cityIds: readonly CityId[]): Promise<unknown[]> {
+  const cityId = cityIds.length === 1 ? cityIds[0] : null;
   try {
-    const remote = JSON.parse(await requestText(PRODUCTION_SNAPSHOT_URL)) as unknown;
+    const path = cityId ? `cities/${cityId}.json` : 'live-activities.json';
+    const remote = JSON.parse(await requestText(`${PRODUCTION_DATA_URL}/${path}`)) as unknown;
     if (Array.isArray(remote)) return remote;
+    if (remote && typeof remote === 'object') {
+      const activities = (remote as { activities?: unknown }).activities;
+      if (Array.isArray(activities)) return activities;
+    }
   } catch {
     // The committed snapshot remains the first-deploy and offline fallback.
   }
 
   try {
-    const local = JSON.parse(await readFile(ACTIVITY_OUTPUT, 'utf8')) as unknown;
-    return Array.isArray(local) ? local : [];
+    const path = cityId
+      ? resolve(CITY_OUTPUT_DIRECTORY, `${cityId}.json`)
+      : ACTIVITY_OUTPUT;
+    const local = JSON.parse(await readFile(path, 'utf8')) as unknown;
+    if (Array.isArray(local)) return local;
+    if (local && typeof local === 'object') {
+      const activities = (local as { activities?: unknown }).activities;
+      return Array.isArray(activities) ? activities : [];
+    }
+    return [];
   } catch {
     return [];
   }
@@ -215,7 +292,7 @@ export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult>
   const registry = options.adapters ?? defaultAdapters;
   validateAdapterRegistry(registry);
   const adapters = selectAdapters(registry, cityIds);
-  const previousValues = await (options.loadPrevious ?? loadPreviousSnapshot)();
+  const previousValues = await (options.loadPrevious ?? (() => loadPreviousSnapshot(cityIds)))();
   const previous = removeExpiredActivities(
     validatedPreviousActivities(previousValues, adapters),
     now,
@@ -263,18 +340,16 @@ export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult>
     current: deduplicated.activities,
     failedSources: failedSourceAdapters,
     cityIds,
+    now,
   });
   if (snapshot.warning) warnings.push(snapshot.warning);
-  if (adapters.length > 0 && failedSources === adapters.length && snapshot.activities.length === 0) {
-    throw new Error('All live activity sources failed and no valid previous records are available');
-  }
-
   const status: SyncStatus = {
     generatedAt,
     cityIds,
     configuredSources: adapters.length,
     successfulSources,
     failedSources,
+    failedSourceIds: failedSourceAdapters.map((adapter) => adapter.id),
     sourceCounts,
     fetchedCount: fetched.length,
     invalidCount,
@@ -291,6 +366,95 @@ export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult>
     activities: snapshot.activities,
     status,
     summary: createSummary(status),
+  };
+}
+
+export function createCitySnapshot(
+  result: SyncResult,
+  cityId: CityId,
+  adapters: readonly SourceAdapter[],
+): CityActivitySnapshot {
+  const activities = result.activities.filter((activity) => activity.cityId === cityId);
+  const fallbackActivities = activities.filter((activity) =>
+    activity.lastVerifiedAt !== result.status.generatedAt);
+  const fallbackIds = new Set(fallbackActivities.map((activity) => activity.id));
+  const failedIds = new Set(result.status.failedSourceIds);
+  const sources: SnapshotSource[] = adapters.map((adapter) => {
+    const sourceActivities = activities.filter((activity) => activity.sourceId === adapter.id);
+    const fallbackCount = sourceActivities.filter((activity) => fallbackIds.has(activity.id)).length;
+    return {
+      id: adapter.id,
+      name: adapter.name,
+      sourceType: adapter.sourceType,
+      availability: failedIds.has(adapter.id)
+        ? (fallbackCount > 0 ? 'fallback' : 'unavailable')
+        : 'fresh',
+      fetched: result.status.sourceCounts[adapter.id] ?? 0,
+      final: sourceActivities.length,
+    };
+  });
+  const currentCount = activities.length - fallbackActivities.length;
+
+  return {
+    schemaVersion: 2,
+    cityId,
+    generatedAt: result.status.generatedAt,
+    availability: deriveAvailability(
+      result.status.successfulSources,
+      result.status.failedSources,
+      currentCount,
+      fallbackActivities.length,
+    ),
+    sources,
+    counts: {
+      fetched: result.status.fetchedCount,
+      invalid: result.status.invalidCount,
+      expired: result.status.expiredCount,
+      duplicate: result.status.duplicateCount,
+      current: currentCount,
+      fallback: fallbackActivities.length,
+      final: activities.length,
+    },
+    warnings: result.status.warnings,
+    activities,
+  };
+}
+
+export async function runPublication(
+  cityIds: readonly CityId[] = CITY_IDS,
+  options: Omit<RunSyncOptions, 'cityIds'> = {},
+): Promise<PublicationResult> {
+  const results = await Promise.all(cityIds.map((cityId) =>
+    runSync({ ...options, cityIds: [cityId] })));
+  const updatedSnapshots = results.map((result, index) => {
+    const cityId = cityIds[index];
+    return createCitySnapshot(result, cityId, selectAdapters(options.adapters ?? defaultAdapters, [cityId]));
+  });
+  const updatedByCity = new Map(updatedSnapshots.map((snapshot) => [snapshot.cityId, snapshot]));
+  const snapshots = await Promise.all(CITY_IDS.map(async (cityId) => {
+    const updated = updatedByCity.get(cityId);
+    if (updated) return updated;
+    const existing = JSON.parse(
+      await readFile(resolve(CITY_OUTPUT_DIRECTORY, `${cityId}.json`), 'utf8'),
+    ) as unknown;
+    validateCitySnapshot(existing, cityId, selectAdapters(defaultAdapters, [cityId]));
+    return existing;
+  }));
+  const manifest = createManifest(snapshots);
+  const guangzhouIndex = cityIds.indexOf('guangzhou');
+  const compatibilityActivities = guangzhouIndex >= 0
+    ? results[guangzhouIndex].activities
+    : JSON.parse(await readFile(ACTIVITY_OUTPUT, 'utf8')) as NormalizedLiveActivity[];
+  const compatibilityStatus = guangzhouIndex >= 0
+    ? results[guangzhouIndex].status
+    : JSON.parse(await readFile(STATUS_OUTPUT, 'utf8')) as SyncStatus;
+
+  return {
+    manifest,
+    snapshots,
+    compatibilityActivities,
+    compatibilityStatus,
+    summary: createDeploymentSummary(manifest, snapshots),
   };
 }
 
@@ -349,6 +513,9 @@ export function validateSyncOutput(
     status.cityIds.length !== cityIds.length ||
     status.cityIds.some((cityId) => !cityIds.includes(cityId)) ||
     !countKeys.every((key) => isNonNegativeInteger(status[key])) ||
+    !Array.isArray(status.failedSourceIds) ||
+    !status.failedSourceIds.every((id) => typeof id === 'string') ||
+    new Set(status.failedSourceIds).size !== status.failedSourceIds.length ||
     typeof status.usedFallback !== 'boolean' ||
     !Array.isArray(status.warnings) ||
     !status.warnings.every((warning) => typeof warning === 'string') ||
@@ -363,6 +530,8 @@ export function validateSyncOutput(
   if (
     !sourceCounts.every(isNonNegativeInteger) ||
     sourceCounts.length !== typedStatus.configuredSources ||
+    typedStatus.failedSourceIds.length !== typedStatus.failedSources ||
+    typedStatus.failedSourceIds.some((id) => !(id in typedStatus.sourceCounts)) ||
     typedStatus.successfulSources + typedStatus.failedSources !== typedStatus.configuredSources ||
     sourceCounts.reduce((sum, count) => sum + count, 0) !== typedStatus.fetchedCount ||
     typedStatus.fetchedCount - typedStatus.invalidCount - typedStatus.expiredCount -
@@ -375,22 +544,54 @@ export function validateSyncOutput(
 }
 
 export async function validateCommittedFiles(): Promise<void> {
-  const activities = JSON.parse(await readFile(ACTIVITY_OUTPUT, 'utf8')) as unknown;
-  const status = JSON.parse(await readFile(STATUS_OUTPUT, 'utf8')) as unknown;
-  const statusCityIds = status && typeof status === 'object'
-    ? (status as { cityIds?: unknown }).cityIds
-    : undefined;
-  const cityIds = Array.isArray(statusCityIds) &&
-      statusCityIds.length > 0 &&
-      statusCityIds.every(isCityId)
-    ? statusCityIds
-    : [...CITY_IDS];
+  const snapshots = await Promise.all(CITY_IDS.map(async (cityId) => {
+    const value = JSON.parse(
+      await readFile(resolve(CITY_OUTPUT_DIRECTORY, `${cityId}.json`), 'utf8'),
+    ) as unknown;
+    validateCitySnapshot(value, cityId, selectAdapters(defaultAdapters, [cityId]));
+    return value;
+  }));
+  const manifest = JSON.parse(await readFile(MANIFEST_OUTPUT, 'utf8')) as unknown;
+  validateManifest(manifest, snapshots);
+
+  const compatibilityActivities =
+    JSON.parse(await readFile(ACTIVITY_OUTPUT, 'utf8')) as unknown;
+  const compatibilityStatus =
+    JSON.parse(await readFile(STATUS_OUTPUT, 'utf8')) as unknown;
   validateSyncOutput(
-    activities,
-    status,
-    selectAdapters(defaultAdapters, cityIds),
-    cityIds,
+    compatibilityActivities,
+    compatibilityStatus,
+    selectAdapters(defaultAdapters, ['guangzhou']),
+    ['guangzhou'],
   );
+  const guangzhou = snapshots[CITY_IDS.indexOf('guangzhou')];
+  const sourceCounts = Object.fromEntries(
+    guangzhou.sources.map((source) => [source.id, source.fetched]),
+  );
+  const failedSourceIds = guangzhou.sources
+    .filter((source) => source.availability !== 'fresh')
+    .map((source) => source.id);
+  if (
+    JSON.stringify(compatibilityActivities) !== JSON.stringify(guangzhou.activities) ||
+    compatibilityStatus.generatedAt !== guangzhou.generatedAt ||
+    JSON.stringify(compatibilityStatus.cityIds) !== JSON.stringify(['guangzhou']) ||
+    compatibilityStatus.configuredSources !== guangzhou.sources.length ||
+    compatibilityStatus.successfulSources !==
+      guangzhou.sources.filter((source) => source.availability === 'fresh').length ||
+    compatibilityStatus.failedSources !== failedSourceIds.length ||
+    JSON.stringify(compatibilityStatus.failedSourceIds) !== JSON.stringify(failedSourceIds) ||
+    JSON.stringify(compatibilityStatus.sourceCounts) !== JSON.stringify(sourceCounts) ||
+    compatibilityStatus.finalCount !== guangzhou.counts.final ||
+    compatibilityStatus.fetchedCount !== guangzhou.counts.fetched ||
+    compatibilityStatus.invalidCount !== guangzhou.counts.invalid ||
+    compatibilityStatus.expiredCount !== guangzhou.counts.expired ||
+    compatibilityStatus.duplicateCount !== guangzhou.counts.duplicate ||
+    compatibilityStatus.fallbackCount !== guangzhou.counts.fallback ||
+    compatibilityStatus.usedFallback !== (guangzhou.counts.fallback > 0) ||
+    JSON.stringify(compatibilityStatus.warnings) !== JSON.stringify(guangzhou.warnings)
+  ) {
+    throw new TypeError('Guangzhou compatibility files do not match the city snapshot');
+  }
 }
 
 export type CliOptions =
@@ -412,20 +613,29 @@ export function parseCliArgs(args: readonly string[]): CliOptions {
   );
 }
 
-async function writeSyncResult(result: SyncResult): Promise<void> {
-  await mkdir(OUTPUT_DIRECTORY, { recursive: true });
+async function writeJsonAtomically(path: string, value: unknown): Promise<void> {
+  const temporaryPath = `${path}.tmp`;
+  await writeFile(temporaryPath, prettyJson(value), 'utf8');
+  await rename(temporaryPath, path);
+}
+
+async function writePublication(result: PublicationResult): Promise<void> {
+  await mkdir(CITY_OUTPUT_DIRECTORY, { recursive: true });
+  await Promise.all(result.snapshots.map((snapshot) =>
+    writeJsonAtomically(resolve(CITY_OUTPUT_DIRECTORY, `${snapshot.cityId}.json`), snapshot)));
   await Promise.all([
-    writeFile(ACTIVITY_OUTPUT, prettyJson(result.activities), 'utf8'),
-    writeFile(STATUS_OUTPUT, prettyJson(result.status), 'utf8'),
+    writeJsonAtomically(ACTIVITY_OUTPUT, result.compatibilityActivities),
+    writeJsonAtomically(STATUS_OUTPUT, result.compatibilityStatus),
   ]);
+  await writeJsonAtomically(MANIFEST_OUTPUT, result.manifest);
   const summaryPath = process.env.GITHUB_STEP_SUMMARY;
   if (summaryPath) await appendFile(summaryPath, result.summary, 'utf8');
 }
 
 interface CliDependencies {
   validateFiles?: () => Promise<void>;
-  sync?: (options: RunSyncOptions) => Promise<SyncResult>;
-  write?: (result: SyncResult) => Promise<void>;
+  publish?: (cityIds: readonly CityId[]) => Promise<PublicationResult>;
+  write?: (result: PublicationResult) => Promise<void>;
 }
 
 export async function runCli(
@@ -439,10 +649,16 @@ export async function runCli(
     return;
   }
 
-  const result = await (dependencies.sync ?? runSync)({ cityIds: options.cityIds });
-  const adapters = selectAdapters(defaultAdapters, options.cityIds);
-  validateSyncOutput(result.activities, result.status, adapters, options.cityIds);
-  await (dependencies.write ?? writeSyncResult)(result);
+  const result = await (dependencies.publish ?? runPublication)(options.cityIds);
+  for (const snapshot of result.snapshots) {
+    validateCitySnapshot(
+      snapshot,
+      snapshot.cityId,
+      selectAdapters(defaultAdapters, [snapshot.cityId]),
+    );
+  }
+  validateManifest(result.manifest, result.snapshots);
+  await (dependencies.write ?? writePublication)(result);
   console.log(result.summary);
 }
 

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "cityId": "beijing",
+  "generatedAt": null,
+  "availability": "evergreen-only",
+  "sources": [
+    {
+      "id": "beijing-city-events",
+      "name": "首都之窗城市活动",
+      "sourceType": "government",
+      "availability": "unavailable",
+      "fetched": 0,
+      "final": 0
+    }
+  ],
+  "counts": {
+    "fetched": 0,
+    "invalid": 0,
+    "expired": 0,
+    "duplicate": 0,
+    "current": 0,
+    "fallback": 0,
+    "final": 0
+  },
+  "warnings": [
+    "Live activity synchronization has not run yet."
+  ],
+  "activities": []
+}

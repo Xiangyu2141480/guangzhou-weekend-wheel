@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": null,
+  "cities": [
+    {
+      "cityId": "beijing",
+      "snapshot": "cities/beijing.json",
+      "availability": "evergreen-only",
+      "generatedAt": null,
+      "liveCount": 0
+    },
+    {
+      "cityId": "shanghai",
+      "snapshot": "cities/shanghai.json",
+      "availability": "evergreen-only",
+      "generatedAt": null,
+      "liveCount": 0
+    },
+    {
+      "cityId": "guangzhou",
+      "snapshot": "cities/guangzhou.json",
+      "availability": "evergreen-only",
+      "generatedAt": null,
+      "liveCount": 0
+    },
+    {
+      "cityId": "shenzhen",
+      "snapshot": "cities/shenzhen.json",
+      "availability": "evergreen-only",
+      "generatedAt": null,
+      "liveCount": 0
+    },
+    {
+      "cityId": "suzhou",
+      "snapshot": "cities/suzhou.json",
+      "availability": "evergreen-only",
+      "generatedAt": null,
+      "liveCount": 0
+    }
+  ]
+}
