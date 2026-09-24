@@ -59,7 +59,6 @@ export default function App() {
   );
   const wheel = useWheel(filteredActivities, { reducedMotion });
   const favorites = useFavorites();
-  const favoriteActivities = activityPool.activities.filter((activity) => favorites.favoriteIds.includes(activity.id));
   const easterEgg = getEasterEgg(wheel.spinCount, wheel.categoryHistory);
   const announcement = wheel.isSpinning
     ? '转盘开始转动，正在选择周末去处。'
@@ -236,13 +235,20 @@ export default function App() {
           <ResultSheet
             activity={wheel.selectedActivity}
             isFavorite={favorites.isFavorite(wheel.selectedActivity.id)}
-            onFavorite={() => favorites.toggleFavorite(wheel.selectedActivity!.id)}
+            onFavorite={() => favorites.toggleFavorite(wheel.selectedActivity!)}
             onRetry={retry}
             onClose={wheel.clearResult}
           />
         </>
       )}
-      {favoritesOpen && <FavoritesSheet activities={favoriteActivities} onRemove={favorites.toggleFavorite} onClose={() => setFavoritesOpen(false)} />}
+      {favoritesOpen && (
+        <FavoritesSheet
+          records={favorites.records}
+          currentCityId={selectedCity}
+          onRemove={favorites.removeFavorite}
+          onClose={() => setFavoritesOpen(false)}
+        />
+      )}
     </main>
   );
 }

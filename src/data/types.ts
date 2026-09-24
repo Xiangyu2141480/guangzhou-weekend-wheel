@@ -65,6 +65,24 @@ export interface LiveActivity extends ActivityCore {
 
 export type Activity = EvergreenActivity | LiveActivity;
 
+export interface FavoriteSnapshot {
+  name: string;
+  shortName: string;
+  venue: string;
+  district: string;
+  budgetLabel: string;
+  emoji: string;
+  mapKeyword: string;
+  live: boolean;
+}
+
+export interface FavoriteRecord {
+  activityId: string;
+  cityId: CityId;
+  savedAt: string | null;
+  snapshot: FavoriteSnapshot | null;
+}
+
 const categories = new Set<ActivityCategory>([
   'art',
   'outdoor',

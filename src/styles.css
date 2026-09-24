@@ -191,12 +191,16 @@ footer small { font-size: 10px; }
 .favorites-title .yuwan-mascot { width: 112px; }
 .favorites-title p { margin: 0; font: 700 12px 'Gaegu',cursive; letter-spacing: .12em; }
 .favorites-title h2 { margin: 0; font-size: 27px; }
+.favorites-view-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 8px 0 12px; }
+.favorites-view-switch button { min-height: 44px; padding: 7px 10px; border: 1.8px solid var(--ink); border-radius: 999px; background: #fff; font-size: 11px; font-weight: 800; cursor: pointer; }
+.favorites-view-switch button[aria-pressed='true'] { background: var(--yellow); box-shadow: inset 0 -3px rgba(51,48,45,.08); }
 .favorites-empty { padding: 35px 12px; text-align: center; }
 .favorites-empty p { margin: 0; font-size: 18px; font-weight: 800; }
 .favorites-empty span { color: #766c64; font-size: 12px; }
 .favorites-list { display: grid; gap: 9px; margin: 10px 0 0; padding: 0; list-style: none; }
 .favorites-list li { display: grid; grid-template-columns: 40px 1fr 30px; align-items: center; gap: 8px; padding: 10px; border: 1.8px solid var(--ink); border-radius: 10px 13px 9px 12px; background: #fff; }
 .favorite-emoji { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 50%; background: var(--yellow); font-size: 20px; }
+.favorite-city { display: inline-block; margin-bottom: 2px; padding: 1px 6px; border-radius: 999px; background: var(--blue); font-size: 9px; font-weight: 900; }
 .favorites-list b { display: block; font-size: 14px; }
 .favorites-list small { color: #71675f; font-size: 10px; line-height: 1.5; }
 .favorites-list button { min-width: 44px; min-height: 44px; border: 0; background: transparent; font-size: 20px; cursor: pointer; }
