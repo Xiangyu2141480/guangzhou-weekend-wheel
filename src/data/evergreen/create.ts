@@ -4,6 +4,7 @@ import type {
   EvergreenActivity,
   IndoorOutdoor,
 } from '../types';
+import { toGuangzhouActivityV2 } from '../guangzhouCompatibility';
 
 export function evergreen(
   id: string,
@@ -27,7 +28,7 @@ export function evergreen(
   if (/4[–-][68]|5 小时|6 小时|一整天/.test(duration)) timeTags.push('full-day');
   if (/夜|晚上|日落/.test(`${name}${tags}`)) timeTags.push('evening');
 
-  return {
+  return toGuangzhouActivityV2({
     id,
     name,
     shortName,
@@ -47,5 +48,5 @@ export function evergreen(
     mapKeyword,
     transport,
     live: false,
-  };
+  });
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isDistrictInCity } from '../cities';
 import { evergreenActivities } from './index';
 
 describe('evergreen activity pool', () => {
@@ -12,7 +13,10 @@ describe('evergreen activity pool', () => {
         (item) =>
           item.transport.length > 0 &&
           item.mapKeyword.length > 0 &&
-          item.timeTags.length > 0,
+          item.timeTags.length > 0 &&
+          item.schemaVersion === 2 &&
+          item.cityId === 'guangzhou' &&
+          isDistrictInCity(item.cityId, item.district),
       ),
     ).toBe(true);
   });

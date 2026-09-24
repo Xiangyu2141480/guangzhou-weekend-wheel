@@ -1,5 +1,5 @@
 import { load } from 'cheerio';
-import { getGuangzhouDateKey } from '../../../src/utils/date';
+import { getChinaDateKey } from '../../../src/utils/date';
 import type { ActivityCategory } from '../../../src/data/types';
 import { normalizeActivity, normalizeText } from '../normalize';
 import type { NormalizedLiveActivity, RawActivityRecord } from '../types';
@@ -37,6 +37,7 @@ function compactDate(value: number | string | undefined, endOfDay = false): stri
 }
 
 function districtFromVenue(venue: string): string {
+  if (/保利世贸博览馆|广交会展馆/u.test(venue)) return '海珠区';
   const district = ['天河', '越秀', '海珠', '荔湾', '番禺', '黄埔', '白云', '花都', '南沙', '增城', '从化']
     .find((name) => venue.includes(name));
   return district ? `${district}区` : '广州市';
@@ -79,7 +80,8 @@ export function parseGzExhibition(text: string, fetchedAt: string): NormalizedLi
       venue,
       eventStart,
       eventEnd,
-      sourceType: 'official',
+      sourceId: 'gz-exhibition',
+      sourceType: 'government',
       sourceName: '广州市会展业公共服务平台',
       sourceUrl: new URL(row.url ?? '', PUBLIC_BASE_URL).href,
       priceText: explicitPriceText(row.content),
@@ -101,7 +103,7 @@ export async function fetchGzExhibition(fetchedAt = new Date().toISOString()): P
   const start = new Date(fetchedAt);
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 120);
-  const dateNumber = (date: Date) => getGuangzhouDateKey(date).replace(/-/gu, '');
+  const dateNumber = (date: Date) => getChinaDateKey(date).replace(/-/gu, '');
   const text = await postForm(API_URL, {
     siteid: '106',
     categoryid: '48',

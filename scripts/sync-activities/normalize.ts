@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { getGuangzhouDateKey, getLiveStatus } from '../../src/utils/date';
+import { getChinaDateKey, getLiveStatus } from '../../src/utils/date';
 import type { ActivityCategory, PriceStatus } from '../../src/data/types';
 import type { NormalizedLiveActivity, RawActivityRecord } from './types';
 import { validateRawActivity } from './validate';
@@ -54,7 +54,7 @@ function parsePrice(value?: string): PriceDecision {
 }
 
 export function createFingerprint(name: string, venue: string, eventStart: string): string {
-  const identity = [normalizeText(name), normalizeText(venue), getGuangzhouDateKey(eventStart)]
+  const identity = [normalizeText(name), normalizeText(venue), getChinaDateKey(eventStart)]
     .join('|')
     .toLocaleLowerCase('zh-CN');
   return createHash('sha1').update(identity).digest('hex');
@@ -75,12 +75,14 @@ export function normalizeActivity(
   const fingerprint = createFingerprint(name, venue, record.eventStart);
 
   return {
+    schemaVersion: 2,
     id: `live-${fingerprint.slice(0, 16)}`,
+    cityId: 'guangzhou',
     fingerprint,
     name,
     shortName: normalizeText(record.shortName ?? name).slice(0, 10),
     category,
-    district: normalizeText(record.district ?? '广州市'),
+    district: normalizeText(record.district),
     venue,
     budget: price.budget,
     budgetLabel: price.budgetLabel,
@@ -97,6 +99,7 @@ export function normalizeActivity(
     mapKeyword: normalizeText(record.mapKeyword ?? venue),
     transport: normalizeText(record.transport ?? '请以场馆官方交通指引为准'),
     live: true,
+    sourceId: record.sourceId,
     sourceType: record.sourceType,
     sourceName: normalizeText(record.sourceName),
     sourceUrl: record.sourceUrl,

@@ -9,11 +9,12 @@ export interface RawActivityRecord {
   name: string;
   shortName?: string;
   category?: ActivityCategory;
-  district?: string;
+  district: string;
   venue: string;
   eventStart: string;
   eventEnd?: string;
-  sourceType: 'official' | 'venue';
+  sourceId: string;
+  sourceType: 'government' | 'official-venue';
   sourceName: string;
   sourceUrl: string;
   sourceUpdatedAt?: string;

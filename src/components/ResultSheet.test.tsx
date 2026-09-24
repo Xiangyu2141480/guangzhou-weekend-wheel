@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, test, vi } from 'vitest';
-import { activities, type Activity } from '../data/activities';
+import { activities } from '../data/activities';
+import type { LiveActivity } from '../data/types';
 import { ResultSheet } from './ResultSheet';
 
-const liveActivity: Activity = {
+const liveActivity: LiveActivity = {
   ...activities[0],
   id: 'live-weekend-exhibition',
   name: '周末限定设计展',
@@ -15,7 +16,8 @@ const liveActivity: Activity = {
   budgetLabel: '免费',
   priceStatus: 'free',
   live: true,
-  sourceType: 'official',
+  sourceId: 'gz-library',
+  sourceType: 'official-venue',
   sourceName: '广州图书馆',
   sourceUrl: 'https://www.gzlib.org.cn/example',
   eventStart: '2026-08-30T10:00:00+08:00',

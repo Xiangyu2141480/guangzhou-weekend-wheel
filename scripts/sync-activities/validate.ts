@@ -3,6 +3,7 @@ import {
   isTrustedHttpsUrl,
   TRUSTED_ACTIVITY_SOURCE_HOSTS,
 } from '../../src/config/trustedUrls';
+import { isDistrictInCity } from '../../src/data/cities';
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -40,6 +41,11 @@ export function validateRawActivity(
   const errors: string[] = [];
   if (!hasText(record.name)) errors.push('name');
   if (!hasText(record.venue)) errors.push('venue');
+  if (!isDistrictInCity('guangzhou', record.district)) errors.push('district');
+  if (!hasText(record.sourceId)) errors.push('sourceId');
+  if (record.sourceType !== 'government' && record.sourceType !== 'official-venue') {
+    errors.push('sourceType');
+  }
   if (!hasText(record.sourceName)) errors.push('sourceName');
   if (!hasText(record.sourceUrl) || !isTrustedHttpsUrl(record.sourceUrl, allowedSourceHosts)) {
     errors.push('sourceUrl');

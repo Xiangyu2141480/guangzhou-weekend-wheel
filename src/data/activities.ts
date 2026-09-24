@@ -4,7 +4,9 @@ import type {
   ActivityTimeTag,
   IndoorOutdoor,
 } from './types';
+import { validateActivities } from './types';
 import { additionalEvergreenActivities } from './evergreen/additional';
+import { toGuangzhouActivityV2 } from './guangzhouCompatibility';
 
 export type {
   Activity,
@@ -230,13 +232,13 @@ function getTimeTags(duration: string, tags: string[]): ActivityTimeTag[] {
 const migratedLegacyActivities: Activity[] = legacyActivities.map(
   ({ dynamic, ...activity }) => {
     void dynamic;
-    return {
-    ...activity,
-    venue: activity.mapKeyword,
-    priceStatus: activity.budget === 0 ? 'free' : 'known',
-    timeTags: getTimeTags(activity.duration, activity.tags),
+    return toGuangzhouActivityV2({
+      ...activity,
+      venue: activity.mapKeyword,
+      priceStatus: activity.budget === 0 ? 'free' : 'known',
+      timeTags: getTimeTags(activity.duration, activity.tags),
       live: false,
-    };
+    });
   },
 );
 
@@ -244,6 +246,8 @@ export const activities: Activity[] = [
   ...migratedLegacyActivities,
   ...additionalEvergreenActivities,
 ];
+
+validateActivities(activities);
 
 export const categories: ReadonlyArray<{
   id: ActivityCategory;

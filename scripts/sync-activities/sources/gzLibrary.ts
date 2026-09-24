@@ -1,5 +1,5 @@
 import { load } from 'cheerio';
-import { getGuangzhouDateKey } from '../../../src/utils/date';
+import { getChinaDateKey } from '../../../src/utils/date';
 import { normalizeActivity, normalizeText } from '../normalize';
 import type { NormalizedLiveActivity, RawActivityRecord } from '../types';
 import { validateRawActivity } from '../validate';
@@ -37,7 +37,8 @@ export function parseGzLibrary(html: string, fetchedAt: string): NormalizedLiveA
       district: '天河区',
       venue,
       ...dates,
-      sourceType: 'official',
+      sourceId: 'gz-library',
+      sourceType: 'official-venue',
       sourceName: '广州图书馆',
       sourceUrl: new URL(titleLink.attr('href') ?? '', LIST_URL).href,
       priceText: row.find('.yg2-price').first().text() || undefined,
@@ -71,8 +72,8 @@ export async function fetchGzLibrary(fetchedAt = new Date().toISOString()): Prom
     queryActPp: '',
     querySvcArea: '',
     actionSite: '',
-    queryActStartTime: getGuangzhouDateKey(start),
-    queryActEndTime: getGuangzhouDateKey(end),
+    queryActStartTime: getChinaDateKey(start),
+    queryActEndTime: getChinaDateKey(end),
     channelId: '476',
     categoryId: '',
     pageNo: '1',
