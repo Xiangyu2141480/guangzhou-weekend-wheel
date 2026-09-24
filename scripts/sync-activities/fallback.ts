@@ -1,10 +1,17 @@
 import { deduplicateActivities } from './deduplicate';
+import type { CityId } from '../../src/data/cities';
 import type { NormalizedLiveActivity } from './types';
+
+export interface FailedSource {
+  id: string;
+  cityId: CityId;
+}
 
 export interface SnapshotInput {
   previous: NormalizedLiveActivity[];
   current: NormalizedLiveActivity[];
-  failedSourceNames: readonly string[];
+  failedSources: readonly FailedSource[];
+  cityIds: readonly CityId[];
 }
 
 export interface SnapshotDecision {
@@ -15,9 +22,14 @@ export interface SnapshotDecision {
 }
 
 export function selectSnapshot(input: SnapshotInput): SnapshotDecision {
-  const failedSources = new Set(input.failedSourceNames);
-  const fallback = input.previous.filter((activity) => failedSources.has(activity.sourceName));
-  const merged = deduplicateActivities([...input.current, ...fallback]).activities;
+  deduplicateActivities(input.previous, input.cityIds);
+  deduplicateActivities(input.current, input.cityIds);
+  const failedSources = new Set(
+    input.failedSources.map((source) => `${source.cityId}:${source.id}`),
+  );
+  const fallback = input.previous.filter((activity) =>
+    failedSources.has(`${activity.cityId}:${activity.sourceId}`));
+  const merged = deduplicateActivities([...input.current, ...fallback], input.cityIds).activities;
   const fallbackCount = merged.length - input.current.length;
 
   return {

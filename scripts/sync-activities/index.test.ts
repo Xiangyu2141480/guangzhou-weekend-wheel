@@ -1,17 +1,31 @@
 import { describe, expect, it, vi } from 'vitest';
 import { isActivity } from '../../src/data/types';
 import { normalizeActivity } from './normalize';
-import { runSync, validateSyncOutput } from './index';
-import type { NormalizedLiveActivity, RawActivityRecord } from './types';
+import {
+  defaultAdapters,
+  parseCliArgs,
+  runCli,
+  runSync,
+  selectAdapters,
+  validateSyncOutput,
+} from './index';
+import type {
+  NormalizedLiveActivity,
+  RawActivityRecord,
+  SourceAdapter,
+} from './types';
 
 const fetchedAt = '2026-08-31T00:00:00.000Z';
 const now = new Date(fetchedAt);
 
-function activity(overrides: Partial<RawActivityRecord> = {}): NormalizedLiveActivity {
+function activity(
+  overrides: Partial<RawActivityRecord> = {},
+  cityId: 'guangzhou' | 'shanghai' = 'guangzhou',
+): NormalizedLiveActivity {
   return normalizeActivity({
     name: '本周新展览',
     venue: '广州图书馆',
-    district: '天河区',
+    district: cityId === 'guangzhou' ? '天河区' : '黄浦区',
     eventStart: '2026-09-02T10:00:00+08:00',
     eventEnd: '2026-09-04T18:00:00+08:00',
     sourceId: 'test-source',
@@ -19,7 +33,20 @@ function activity(overrides: Partial<RawActivityRecord> = {}): NormalizedLiveAct
     sourceName: '测试官方源',
     sourceUrl: 'https://www.gzlib.org.cn/event/1',
     ...overrides,
-  }, fetchedAt, now);
+  }, cityId, fetchedAt, now, cityId === 'guangzhou' ? ['gzlib.org.cn'] : ['shanghai.gov.cn']);
+}
+
+function adapter(overrides: Partial<SourceAdapter> = {}): SourceAdapter {
+  return {
+    id: 'test-source',
+    cityId: 'guangzhou',
+    name: '测试官方源',
+    sourceType: 'official-venue',
+    allowedHosts: ['gzlib.org.cn'],
+    allowEmptyResult: false,
+    fetch: async () => [],
+    ...overrides,
+  };
 }
 
 describe('live activity sync orchestration', () => {
@@ -36,9 +63,14 @@ describe('live activity sync orchestration', () => {
 
     const result = await runSync({
       adapters: [
-        { name: '成功源', fetch: async () => [valid, duplicate, expired, malformed] },
-        { name: '失败源', fetch: async () => { throw new Error('source offline'); } },
+        adapter({ fetch: async () => [valid, duplicate, expired, malformed] }),
+        adapter({
+          id: 'failed-source',
+          name: '失败源',
+          fetch: async () => { throw new Error('source offline'); },
+        }),
       ],
+      cityIds: ['guangzhou'],
       loadPrevious,
       now,
     });
@@ -57,7 +89,8 @@ describe('live activity sync orchestration', () => {
       fallbackCount: 0,
       finalCount: 1,
       usedFallback: false,
-      sourceCounts: { 成功源: 4, 失败源: 0 },
+      cityIds: ['guangzhou'],
+      sourceCounts: { 'test-source': 4, 'failed-source': 0 },
     });
     expect(result.status.warnings[0]).toContain('失败源');
     expect(result.summary).toContain('| Fetched | 4 |');
@@ -65,20 +98,29 @@ describe('live activity sync orchestration', () => {
   });
 
   it('filters expired fallback records and restores only a failed source valid records', async () => {
-    const validPrevious = activity({ name: '失败源旧活动', sourceName: '失败源' });
+    const validPrevious = activity({
+      name: '失败源旧活动',
+      sourceId: 'failed-source',
+      sourceName: '失败源',
+    });
     const expiredPrevious = activity({
       name: '失败源过期活动',
+      sourceId: 'failed-source',
       sourceName: '失败源',
       eventStart: '2026-08-20T10:00:00+08:00',
       eventEnd: '2026-08-20T18:00:00+08:00',
     });
-    const healthyPrevious = activity({ name: '成功源旧活动', sourceName: '成功源' });
-    const current = activity({ name: '成功源新活动', sourceName: '成功源' });
+    const healthyPrevious = activity({ name: '成功源旧活动' });
+    const current = activity({ name: '成功源新活动' });
 
     const result = await runSync({
       adapters: [
-        { name: '成功源', fetch: async () => [current] },
-        { name: '失败源', fetch: async () => { throw new Error('offline'); } },
+        adapter({ fetch: async () => [current] }),
+        adapter({
+          id: 'failed-source',
+          name: '失败源',
+          fetch: async () => { throw new Error('offline'); },
+        }),
       ],
       loadPrevious: async () => [validPrevious, expiredPrevious, healthyPrevious],
       now,
@@ -95,13 +137,41 @@ describe('live activity sync orchestration', () => {
     });
   });
 
+  it('treats a disallowed empty result as failure and restores only that source', async () => {
+    const previous = activity({ name: '空结果源旧活动' });
+    const result = await runSync({
+      adapters: [adapter({ fetch: async () => [] })],
+      cityIds: ['guangzhou'],
+      loadPrevious: async () => [previous],
+      now,
+    });
+
+    expect(result.activities.map((item) => item.name)).toEqual(['空结果源旧活动']);
+    expect(result.status).toMatchObject({
+      successfulSources: 0,
+      failedSources: 1,
+      fallbackCount: 1,
+      usedFallback: true,
+    });
+    expect(result.status.warnings[0]).toContain('empty result');
+  });
+
   it('fails when every source fails and no non-expired previous record exists', async () => {
     await expect(runSync({
       adapters: [
-        { name: '失败源一', fetch: async () => { throw new Error('offline'); } },
-        { name: '失败源二', fetch: async () => { throw new Error('offline'); } },
+        adapter({
+          id: 'failed-one',
+          name: '失败源一',
+          fetch: async () => { throw new Error('offline'); },
+        }),
+        adapter({
+          id: 'failed-two',
+          name: '失败源二',
+          fetch: async () => { throw new Error('offline'); },
+        }),
       ],
       loadPrevious: async () => [activity({
+        sourceId: 'failed-one',
         sourceName: '失败源一',
         eventStart: '2026-08-20T10:00:00+08:00',
         eventEnd: '2026-08-20T18:00:00+08:00',
@@ -112,14 +182,15 @@ describe('live activity sync orchestration', () => {
 
   it('rejects records outside the configured source domain', async () => {
     const result = await runSync({
-      adapters: [{
+      adapters: [adapter({
+        id: 'official',
         name: '官方源',
-        allowedSourceHosts: ['trusted.gov.cn'],
+        allowedHosts: ['trusted.gov.cn'],
         fetch: async () => [{
-          ...activity(),
+          ...activity({ sourceId: 'official', sourceName: '官方源' }),
           sourceUrl: 'https://evil.example/event/1',
         }],
-      }],
+      })],
       loadPrevious: async () => [],
       now,
     });
@@ -132,6 +203,7 @@ describe('live activity sync orchestration', () => {
     const item = activity();
     const status = {
       generatedAt: fetchedAt,
+      cityIds: ['guangzhou'],
       configuredSources: 1,
       successfulSources: 1,
       failedSources: 0,
@@ -146,7 +218,121 @@ describe('live activity sync orchestration', () => {
       warnings: [],
     };
 
-    expect(() => validateSyncOutput([item, item], status)).toThrow(/duplicate fingerprints/u);
-    expect(() => validateSyncOutput([item], { ...status, finalCount: 2 })).toThrow(/counts/u);
+    expect(() => validateSyncOutput([item, item], status, [adapter()], ['guangzhou']))
+      .toThrow(/duplicate fingerprints/u);
+    expect(() => validateSyncOutput(
+      [item],
+      { ...status, finalCount: 2 },
+      [adapter()],
+      ['guangzhou'],
+    )).toThrow(/counts/u);
+  });
+});
+
+describe('city-aware source selection', () => {
+  it('registers all three Guangzhou adapters with explicit safety metadata', () => {
+    expect(defaultAdapters).toHaveLength(3);
+    expect(defaultAdapters.every((source) =>
+      source.cityId === 'guangzhou' &&
+      source.allowedHosts.length > 0 &&
+      source.allowEmptyResult === false
+    )).toBe(true);
+    expect(defaultAdapters.map((source) => source.id)).toEqual([
+      'gz-library',
+      'gz-exhibition',
+      'gz-culture-performances',
+    ]);
+  });
+
+  it('runs only adapters registered for the selected city', async () => {
+    const guangzhouFetch = vi.fn(async () => [activity()]);
+    const shanghaiFetch = vi.fn(async () => []);
+    const adapters: SourceAdapter[] = [
+      adapter({ fetch: guangzhouFetch }),
+      adapter({
+        id: 'shanghai-source',
+        cityId: 'shanghai',
+        name: '上海官方源',
+        allowedHosts: ['shanghai.gov.cn'],
+        fetch: shanghaiFetch,
+      }),
+    ];
+
+    const result = await runSync({
+      adapters,
+      cityIds: ['guangzhou'],
+      loadPrevious: async () => [],
+      now,
+    });
+
+    expect(selectAdapters(adapters, ['guangzhou'])).toHaveLength(1);
+    expect(guangzhouFetch).toHaveBeenCalledOnce();
+    expect(shanghaiFetch).not.toHaveBeenCalled();
+    expect(result.activities.every((item) => item.cityId === 'guangzhou')).toBe(true);
+  });
+
+  it('keeps current and fallback records isolated by city and source', async () => {
+    const shanghaiPrevious = activity({
+      name: '上海旧活动',
+      venue: '上海文化馆',
+      sourceId: 'shanghai-source',
+      sourceName: '上海官方源',
+      sourceUrl: 'https://www.shanghai.gov.cn/event/1',
+    }, 'shanghai');
+    const guangzhouPrevious = activity({
+      name: '广州旧活动',
+      sourceId: 'test-source',
+    });
+
+    const result = await runSync({
+      adapters: [
+        adapter({ fetch: async () => [activity({ name: '广州新活动' })] }),
+        adapter({
+          id: 'shanghai-source',
+          cityId: 'shanghai',
+          name: '上海官方源',
+          allowedHosts: ['shanghai.gov.cn'],
+          fetch: async () => { throw new Error('offline'); },
+        }),
+      ],
+      cityIds: ['guangzhou', 'shanghai'],
+      loadPrevious: async () => [guangzhouPrevious, shanghaiPrevious],
+      now,
+    });
+
+    expect(result.activities.map((item) => [item.cityId, item.name])).toEqual([
+      ['guangzhou', '广州新活动'],
+      ['shanghai', '上海旧活动'],
+    ]);
+    expect(result.status.fallbackCount).toBe(1);
+  });
+
+  it('rejects unsupported cities with the complete allow-list', () => {
+    expect(() => parseCliArgs(['--city', 'hangzhou'])).toThrow(
+      /beijing\|shanghai\|guangzhou\|shenzhen\|suzhou/u,
+    );
+    expect(parseCliArgs(['--city', 'guangzhou'])).toEqual({
+      validateOnly: false,
+      cityIds: ['guangzhou'],
+    });
+    expect(parseCliArgs(['--all']).cityIds).toEqual([
+      'beijing',
+      'shanghai',
+      'guangzhou',
+      'shenzhen',
+      'suzhou',
+    ]);
+  });
+
+  it('keeps validate-only read-only and does not start synchronization', async () => {
+    const validateFiles = vi.fn(async () => undefined);
+    const sync = vi.fn();
+    const write = vi.fn();
+
+    await runCli(['--validate-only'], { validateFiles, sync, write });
+
+    expect(validateFiles).toHaveBeenCalledOnce();
+    expect(sync).not.toHaveBeenCalled();
+    expect(write).not.toHaveBeenCalled();
   });
 });

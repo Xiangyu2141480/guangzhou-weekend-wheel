@@ -1,17 +1,19 @@
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { TRUSTED_ACTIVITY_SOURCE_HOSTS } from '../../src/config/trustedUrls';
+import { CITY_IDS, isCityId, type CityId } from '../../src/data/cities';
 import { isActivity } from '../../src/data/types';
-import { createFingerprint } from './normalize';
+import { createFingerprint, normalizeActivity } from './normalize';
 import { deduplicateActivities } from './deduplicate';
 import { removeExpiredActivities } from './expire';
 import { selectSnapshot } from './fallback';
-import { fetchGzCulturePerformances } from './sources/gzCulturePerformances';
-import { fetchGzExhibition } from './sources/gzExhibition';
-import { fetchGzLibrary } from './sources/gzLibrary';
 import { requestText } from './sources/http';
-import type { NormalizedLiveActivity } from './types';
+import { SOURCE_ADAPTERS } from './sources';
+import type {
+  NormalizedLiveActivity,
+  RawActivityRecord,
+  SourceAdapter,
+} from './types';
 import { validateRawActivity } from './validate';
 
 const OUTPUT_DIRECTORY = resolve('public/data');
@@ -20,14 +22,9 @@ const STATUS_OUTPUT = resolve(OUTPUT_DIRECTORY, 'sync-status.json');
 const PRODUCTION_SNAPSHOT_URL =
   'https://xiangyu2141480.github.io/guangzhou-weekend-wheel/data/live-activities.json';
 
-export interface SourceAdapter {
-  name: string;
-  allowedSourceHosts?: readonly string[];
-  fetch: (fetchedAt: string) => Promise<unknown[]>;
-}
-
 export interface SyncStatus {
   generatedAt: string;
+  cityIds: CityId[];
   configuredSources: number;
   successfulSources: number;
   failedSources: number;
@@ -50,47 +47,58 @@ export interface SyncResult {
 
 export interface RunSyncOptions {
   adapters?: SourceAdapter[];
+  cityIds?: CityId[];
   loadPrevious?: () => Promise<unknown[]>;
   now?: Date;
 }
 
-const defaultAdapters: SourceAdapter[] = [
-  { name: '广州图书馆', allowedSourceHosts: ['gzlib.org.cn'], fetch: fetchGzLibrary },
-  {
-    name: '广州市会展业公共服务平台',
-    allowedSourceHosts: ['mice-gz.org'],
-    fetch: fetchGzExhibition,
-  },
-  {
-    name: '广州市文化广电旅游局',
-    allowedSourceHosts: ['wglj.gz.gov.cn'],
-    fetch: fetchGzCulturePerformances,
-  },
-];
+export const defaultAdapters: readonly SourceAdapter[] = SOURCE_ADAPTERS;
 
 function asNormalizedActivity(
   value: unknown,
-  allowedSourceHosts: readonly string[] = TRUSTED_ACTIVITY_SOURCE_HOSTS,
+  adapter: SourceAdapter,
 ): NormalizedLiveActivity | null {
   if (!isActivity(value) || !value.live) return null;
   const candidate = value as NormalizedLiveActivity;
-  if (validateRawActivity(candidate, allowedSourceHosts).length > 0) return null;
+  if (
+    candidate.cityId !== adapter.cityId ||
+    candidate.sourceId !== adapter.id ||
+    candidate.sourceType !== adapter.sourceType ||
+    candidate.sourceName !== adapter.name ||
+    validateRawActivity(candidate, adapter.cityId, adapter.allowedHosts).length > 0
+  ) return null;
+  const fingerprint = createFingerprint(
+    candidate.cityId,
+    candidate.name,
+    candidate.venue,
+    candidate.eventStart,
+  );
   return {
     ...candidate,
-    fingerprint:
-      typeof candidate.fingerprint === 'string' && candidate.fingerprint.length > 0
-        ? candidate.fingerprint
-        : createFingerprint(candidate.name, candidate.venue, candidate.eventStart),
+    id: `event:${candidate.cityId}:${fingerprint.slice(0, 16)}`,
+    fingerprint,
   };
 }
 
-function validatedActivities(
+function normalizeFetchedActivities(
   values: unknown[],
-  allowedSourceHosts: readonly string[] = TRUSTED_ACTIVITY_SOURCE_HOSTS,
+  adapter: SourceAdapter,
+  fetchedAt: string,
+  now: Date,
 ): NormalizedLiveActivity[] {
   return values.flatMap((value) => {
-    const activity = asNormalizedActivity(value, allowedSourceHosts);
-    return activity ? [activity] : [];
+    const normalized = asNormalizedActivity(value, adapter);
+    if (normalized) return [normalized];
+    if (isActivity(value) && value.live) return [];
+    if (!value || typeof value !== 'object') return [];
+    const raw = value as RawActivityRecord;
+    if (
+      raw.sourceId !== adapter.id ||
+      raw.sourceType !== adapter.sourceType ||
+      raw.sourceName !== adapter.name ||
+      validateRawActivity(raw, adapter.cityId, adapter.allowedHosts).length > 0
+    ) return [];
+    return [normalizeActivity(raw, adapter.cityId, fetchedAt, now, adapter.allowedHosts)];
   });
 }
 
@@ -100,11 +108,41 @@ function validatedPreviousActivities(
 ): NormalizedLiveActivity[] {
   return values.flatMap((value) => {
     if (!isActivity(value) || !value.live) return [];
-    const source = adapters.find((adapter) => adapter.name === value.sourceName);
+    const source = adapters.find((adapter) =>
+      adapter.id === value.sourceId && adapter.cityId === value.cityId);
     if (!source) return [];
-    const activity = asNormalizedActivity(value, source.allowedSourceHosts);
+    const activity = asNormalizedActivity(value, source);
     return activity ? [activity] : [];
   });
+}
+
+export function selectAdapters(
+  adapters: readonly SourceAdapter[],
+  cityIds: readonly CityId[],
+): SourceAdapter[] {
+  const selectedCities = new Set(cityIds);
+  return adapters.filter((adapter) => selectedCities.has(adapter.cityId));
+}
+
+export function validateAdapterRegistry(adapters: readonly SourceAdapter[]): void {
+  const identities = new Set<string>();
+  for (const adapter of adapters) {
+    const identity = adapter.id;
+    if (
+      !isCityId(adapter.cityId) ||
+      !adapter.id ||
+      !adapter.name ||
+      (adapter.sourceType !== 'government' && adapter.sourceType !== 'official-venue') ||
+      adapter.allowedHosts.length === 0 ||
+      adapter.allowedHosts.some((host) => !host.trim()) ||
+      typeof adapter.allowEmptyResult !== 'boolean' ||
+      typeof adapter.fetch !== 'function' ||
+      identities.has(identity)
+    ) {
+      throw new TypeError(`Invalid or duplicate source adapter: ${identity}`);
+    }
+    identities.add(identity);
+  }
 }
 
 function errorMessage(error: unknown): string {
@@ -132,6 +170,8 @@ function createSummary(status: SyncStatus): string {
 
   return [
     '## 鱼丸出门部 · Live activity sync',
+    '',
+    `Cities: ${status.cityIds.join(', ')}`,
     '',
     '| Metric | Count |',
     '| --- | ---: |',
@@ -168,11 +208,18 @@ async function loadPreviousSnapshot(): Promise<unknown[]> {
 export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult> {
   const now = options.now ?? new Date();
   const generatedAt = now.toISOString();
-  const adapters = options.adapters ?? defaultAdapters;
+  const cityIds = options.cityIds ?? [...CITY_IDS];
+  if (cityIds.length === 0 || cityIds.some((cityId) => !isCityId(cityId))) {
+    throw new TypeError(`Invalid city selection. Allowed values: ${CITY_IDS.join(', ')}`);
+  }
+  const registry = options.adapters ?? defaultAdapters;
+  validateAdapterRegistry(registry);
+  const adapters = selectAdapters(registry, cityIds);
   const previousValues = await (options.loadPrevious ?? loadPreviousSnapshot)();
   const previous = removeExpiredActivities(
     validatedPreviousActivities(previousValues, adapters),
     now,
+    cityIds,
   ).activities;
   const settled = await Promise.allSettled(
     adapters.map((adapter) => adapter.fetch(generatedAt)),
@@ -182,32 +229,40 @@ export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult>
   const sourceCounts: Record<string, number> = {};
   const fetched: unknown[] = [];
   const valid: NormalizedLiveActivity[] = [];
-  const failedSourceNames: string[] = [];
+  const failedSourceAdapters: SourceAdapter[] = [];
   let successfulSources = 0;
   let failedSources = 0;
 
   settled.forEach((result, index) => {
     const source = adapters[index];
     if (result.status === 'fulfilled') {
+      if (result.value.length === 0 && !source.allowEmptyResult) {
+        failedSources += 1;
+        failedSourceAdapters.push(source);
+        sourceCounts[source.id] = 0;
+        warnings.push(`${source.name}: source returned an empty result`);
+        return;
+      }
       successfulSources += 1;
-      sourceCounts[source.name] = result.value.length;
+      sourceCounts[source.id] = result.value.length;
       fetched.push(...result.value);
-      valid.push(...validatedActivities(result.value, source.allowedSourceHosts));
+      valid.push(...normalizeFetchedActivities(result.value, source, generatedAt, now));
       return;
     }
     failedSources += 1;
-    failedSourceNames.push(source.name);
-    sourceCounts[source.name] = 0;
+    failedSourceAdapters.push(source);
+    sourceCounts[source.id] = 0;
     warnings.push(`${source.name}: ${errorMessage(result.reason)}`);
   });
 
   const invalidCount = fetched.length - valid.length;
-  const expiry = removeExpiredActivities(valid, now);
-  const deduplicated = deduplicateActivities(expiry.activities);
+  const expiry = removeExpiredActivities(valid, now, cityIds);
+  const deduplicated = deduplicateActivities(expiry.activities, cityIds);
   const snapshot = selectSnapshot({
     previous,
     current: deduplicated.activities,
-    failedSourceNames,
+    failedSources: failedSourceAdapters,
+    cityIds,
   });
   if (snapshot.warning) warnings.push(snapshot.warning);
   if (adapters.length > 0 && failedSources === adapters.length && snapshot.activities.length === 0) {
@@ -216,6 +271,7 @@ export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult>
 
   const status: SyncStatus = {
     generatedAt,
+    cityIds,
     configuredSources: adapters.length,
     successfulSources,
     failedSources,
@@ -230,7 +286,7 @@ export async function runSync(options: RunSyncOptions = {}): Promise<SyncResult>
     warnings,
   };
 
-  validateSyncOutput(snapshot.activities, status);
+  validateSyncOutput(snapshot.activities, status, adapters, cityIds);
   return {
     activities: snapshot.activities,
     status,
@@ -249,16 +305,17 @@ function isNonNegativeInteger(value: unknown): value is number {
 export function validateSyncOutput(
   activitiesValue: unknown,
   statusValue: unknown,
-  sourceAdapters: readonly SourceAdapter[] = [],
+  sourceAdapters: readonly SourceAdapter[] = defaultAdapters,
+  cityIds: readonly CityId[] = CITY_IDS,
 ): asserts statusValue is SyncStatus {
   if (!Array.isArray(activitiesValue)) {
     throw new TypeError('live activity output must be an array');
   }
   const activities = activitiesValue.map((item) => {
-    if (sourceAdapters.length === 0) return asNormalizedActivity(item);
     if (!isActivity(item) || !item.live) return null;
-    const source = sourceAdapters.find((adapter) => adapter.name === item.sourceName);
-    return source ? asNormalizedActivity(item, source.allowedSourceHosts) : null;
+    const source = sourceAdapters.find((adapter) =>
+      adapter.id === item.sourceId && adapter.cityId === item.cityId);
+    return source && cityIds.includes(item.cityId) ? asNormalizedActivity(item, source) : null;
   });
   if (activities.some((item) => item === null)) {
     throw new TypeError('live activity output contains an invalid record');
@@ -285,6 +342,12 @@ export function validateSyncOutput(
   ] as const;
   if (
     !(typeof status.generatedAt === 'string' || status.generatedAt === null) ||
+    !Array.isArray(status.cityIds) ||
+    status.cityIds.length === 0 ||
+    !status.cityIds.every(isCityId) ||
+    new Set(status.cityIds).size !== status.cityIds.length ||
+    status.cityIds.length !== cityIds.length ||
+    status.cityIds.some((cityId) => !cityIds.includes(cityId)) ||
     !countKeys.every((key) => isNonNegativeInteger(status[key])) ||
     typeof status.usedFallback !== 'boolean' ||
     !Array.isArray(status.warnings) ||
@@ -311,21 +374,45 @@ export function validateSyncOutput(
   }
 }
 
-async function validateCommittedFiles(): Promise<void> {
+export async function validateCommittedFiles(): Promise<void> {
   const activities = JSON.parse(await readFile(ACTIVITY_OUTPUT, 'utf8')) as unknown;
   const status = JSON.parse(await readFile(STATUS_OUTPUT, 'utf8')) as unknown;
-  validateSyncOutput(activities, status, defaultAdapters);
+  const statusCityIds = status && typeof status === 'object'
+    ? (status as { cityIds?: unknown }).cityIds
+    : undefined;
+  const cityIds = Array.isArray(statusCityIds) &&
+      statusCityIds.length > 0 &&
+      statusCityIds.every(isCityId)
+    ? statusCityIds
+    : [...CITY_IDS];
+  validateSyncOutput(
+    activities,
+    status,
+    selectAdapters(defaultAdapters, cityIds),
+    cityIds,
+  );
 }
 
-async function main(): Promise<void> {
-  if (process.argv.includes('--validate-only')) {
-    await validateCommittedFiles();
-    console.log('Live activity JSON validation passed.');
-    return;
-  }
+export type CliOptions =
+  | { validateOnly: true; cityIds: typeof CITY_IDS }
+  | { validateOnly: false; cityIds: CityId[] };
 
-  const result = await runSync();
-  validateSyncOutput(result.activities, result.status, defaultAdapters);
+export function parseCliArgs(args: readonly string[]): CliOptions {
+  if (args.length === 1 && args[0] === '--validate-only') {
+    return { validateOnly: true, cityIds: CITY_IDS };
+  }
+  if (args.length === 1 && args[0] === '--all') {
+    return { validateOnly: false, cityIds: [...CITY_IDS] };
+  }
+  if (args.length === 2 && args[0] === '--city' && isCityId(args[1])) {
+    return { validateOnly: false, cityIds: [args[1]] };
+  }
+  throw new TypeError(
+    `Usage: sync-activities (--all | --city <${CITY_IDS.join('|')}> | --validate-only)`,
+  );
+}
+
+async function writeSyncResult(result: SyncResult): Promise<void> {
   await mkdir(OUTPUT_DIRECTORY, { recursive: true });
   await Promise.all([
     writeFile(ACTIVITY_OUTPUT, prettyJson(result.activities), 'utf8'),
@@ -333,6 +420,29 @@ async function main(): Promise<void> {
   ]);
   const summaryPath = process.env.GITHUB_STEP_SUMMARY;
   if (summaryPath) await appendFile(summaryPath, result.summary, 'utf8');
+}
+
+interface CliDependencies {
+  validateFiles?: () => Promise<void>;
+  sync?: (options: RunSyncOptions) => Promise<SyncResult>;
+  write?: (result: SyncResult) => Promise<void>;
+}
+
+export async function runCli(
+  args: readonly string[],
+  dependencies: CliDependencies = {},
+): Promise<void> {
+  const options = parseCliArgs(args);
+  if (options.validateOnly) {
+    await (dependencies.validateFiles ?? validateCommittedFiles)();
+    console.log('Live activity JSON validation passed.');
+    return;
+  }
+
+  const result = await (dependencies.sync ?? runSync)({ cityIds: options.cityIds });
+  const adapters = selectAdapters(defaultAdapters, options.cityIds);
+  validateSyncOutput(result.activities, result.status, adapters, options.cityIds);
+  await (dependencies.write ?? writeSyncResult)(result);
   console.log(result.summary);
 }
 
@@ -340,7 +450,7 @@ const entryUrl = process.argv[1]
   ? pathToFileURL(resolve(process.argv[1])).href
   : '';
 if (entryUrl === import.meta.url) {
-  main().catch((error: unknown) => {
+  runCli(process.argv.slice(2)).catch((error: unknown) => {
     console.error(error);
     process.exitCode = 1;
   });

@@ -1,5 +1,8 @@
 {
   "generatedAt": null,
+  "cityIds": [
+    "guangzhou"
+  ],
   "configuredSources": 0,
   "successfulSources": 0,
   "failedSources": 0,

@@ -2,12 +2,14 @@ import { load } from 'cheerio';
 import { getChinaDateKey } from '../../../src/utils/date';
 import type { ActivityCategory } from '../../../src/data/types';
 import { normalizeActivity, normalizeText } from '../normalize';
-import type { NormalizedLiveActivity, RawActivityRecord } from '../types';
+import type { NormalizedLiveActivity, RawActivityRecord, SourceAdapter } from '../types';
 import { validateRawActivity } from '../validate';
 import { postForm } from './http';
 
 const API_URL = 'https://www.mice-gz.org/cms/search/searchdata.jsp';
 const PUBLIC_BASE_URL = 'https://www.mice-gz.org';
+const CITY_ID = 'guangzhou';
+const ALLOWED_HOSTS = ['mice-gz.org'] as const;
 const CONSUMER_ALLOW = /动漫|游戏|插画|艺术|文化|图书|宠物|美食|食品|咖啡|茶|旅游|体育|户外|家居|生活|婚庆|摄影|汽车/u;
 const PROFESSIONAL_DENY = /工业|供应链|采购|设备|机械|原料|技术|贸易|加盟|制造|专业观众|B2B|五金|包装|化工/u;
 
@@ -94,8 +96,8 @@ export function parseGzExhibition(text: string, fetchedAt: string): NormalizedLi
       mapKeyword: venue,
       transport: '请以展馆官方交通指引为准',
     };
-    if (validateRawActivity(record).length > 0) return [];
-    return [normalizeActivity(record, fetchedAt, new Date(fetchedAt))];
+    if (validateRawActivity(record, CITY_ID, ALLOWED_HOSTS).length > 0) return [];
+    return [normalizeActivity(record, CITY_ID, fetchedAt, new Date(fetchedAt))];
   });
 }
 
@@ -117,3 +119,13 @@ export async function fetchGzExhibition(fetchedAt = new Date().toISOString()): P
   });
   return parseGzExhibition(text, fetchedAt);
 }
+
+export const gzExhibitionAdapter: SourceAdapter = {
+  id: 'gz-exhibition',
+  cityId: CITY_ID,
+  name: '广州市会展业公共服务平台',
+  sourceType: 'government',
+  allowedHosts: ALLOWED_HOSTS,
+  allowEmptyResult: false,
+  fetch: fetchGzExhibition,
+};

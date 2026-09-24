@@ -30,17 +30,31 @@ function makeLive(count: number): NormalizedLiveActivity[] {
       name: `测试活动 ${index}`,
       eventStart: `2026-09-${String((index % 20) + 1).padStart(2, '0')}T10:00:00+08:00`,
       venue: `测试场馆 ${index}`,
-    }), fetchedAt, now));
+    }), 'guangzhou', fetchedAt, now));
 }
 
 describe('live activity normalization', () => {
   it('normalizes whitespace and full-width punctuation into a stable fingerprint', () => {
-    const first = normalizeActivity(raw(), fetchedAt, now);
-    const second = normalizeActivity(raw({ name: '羊城学堂: 八月讲座之五' }), fetchedAt, now);
+    const first = normalizeActivity(raw(), 'guangzhou', fetchedAt, now);
+    const second = normalizeActivity(raw({ name: '羊城学堂: 八月讲座之五' }), 'guangzhou', fetchedAt, now);
 
     expect(normalizeText('  A　B： C  ')).toBe('A B: C');
     expect(first.name).toBe('羊城学堂: 八月讲座之五');
     expect(first.fingerprint).toBe(second.fingerprint);
+  });
+
+  it('includes the city in fingerprints for otherwise identical activities', () => {
+    const guangzhou = normalizeActivity(raw(), 'guangzhou', fetchedAt, now);
+    const shanghai = normalizeActivity(
+      raw({ district: '黄浦区' }),
+      'shanghai',
+      fetchedAt,
+      now,
+    );
+
+    expect(guangzhou.fingerprint).not.toBe(shanghai.fingerprint);
+    expect(guangzhou.id).toMatch(/^event:guangzhou:/u);
+    expect(shanghai.id).toMatch(/^event:shanghai:/u);
   });
 
   it.each([
@@ -48,7 +62,7 @@ describe('live activity normalization', () => {
     ['票价 30—80 元', 'known', 30, 30, 80],
     ['现场为准', 'unknown', null, undefined, undefined],
   ] as const)('keeps price evidence explicit for %s', (priceText, priceStatus, budget, priceMin, priceMax) => {
-    const activity = normalizeActivity(raw({ priceText }), fetchedAt, now);
+    const activity = normalizeActivity(raw({ priceText }), 'guangzhou', fetchedAt, now);
     expect(activity).toMatchObject({ priceStatus, budget, priceMin, priceMax });
   });
 
@@ -57,33 +71,33 @@ describe('live activity normalization', () => {
       venue: ' ',
       eventStart: 'not-a-date',
       sourceUrl: 'javascript:alert(1)',
-    }))).toEqual(expect.arrayContaining(['venue', 'eventStart', 'sourceUrl']));
+    }), 'guangzhou')).toEqual(expect.arrayContaining(['venue', 'eventStart', 'sourceUrl']));
   });
 
   it('requires ordered timezone-qualified dates, HTTPS, and an allowed source domain', () => {
     expect(validateRawActivity(raw({
       eventStart: '2026-08-31T10:00:00',
       sourceUrl: 'http://www.gzlib.org.cn/event/1',
-    }), ['gzlib.org.cn'])).toEqual(expect.arrayContaining(['eventStart', 'sourceUrl']));
+    }), 'guangzhou', ['gzlib.org.cn'])).toEqual(expect.arrayContaining(['eventStart', 'sourceUrl']));
     expect(validateRawActivity(raw({
       eventStart: '2026-09-02T10:00:00+08:00',
       eventEnd: '2026-09-01T10:00:00+08:00',
       sourceUrl: 'https://attacker.example/event/1',
-    }), ['gzlib.org.cn'])).toEqual(expect.arrayContaining(['eventEnd', 'sourceUrl']));
+    }), 'guangzhou', ['gzlib.org.cn'])).toEqual(expect.arrayContaining(['eventEnd', 'sourceUrl']));
     expect(validateRawActivity(raw({
       sourceUrl: 'https://events.gzlib.org.cn/event/1',
-    }), ['gzlib.org.cn'])).toEqual([]);
+    }), 'guangzhou', ['gzlib.org.cn'])).toEqual([]);
   });
 });
 
 describe('live activity pipeline decisions', () => {
   it('deduplicates normalized title, venue, and Guangzhou calendar date', () => {
-    const first = normalizeActivity(raw(), fetchedAt, now);
+    const first = normalizeActivity(raw(), 'guangzhou', fetchedAt, now);
     const duplicate = normalizeActivity(raw({
       name: '羊城学堂: 八月讲座之五',
       sourceName: '另一个官方索引',
       sourceUrl: 'https://www.gzlib.org.cn/event/duplicate',
-    }), fetchedAt, now);
+    }), 'guangzhou', fetchedAt, now);
     const decision = deduplicateActivities([first, duplicate]);
 
     expect(decision.activities).toHaveLength(1);
@@ -91,17 +105,17 @@ describe('live activity pipeline decisions', () => {
   });
 
   it('removes expired records and derives upcoming or ongoing status', () => {
-    const future = normalizeActivity(raw(), fetchedAt, now);
+    const future = normalizeActivity(raw(), 'guangzhou', fetchedAt, now);
     const ongoing = normalizeActivity(raw({
       name: '正在进行的展览',
       eventStart: '2026-08-29T10:00:00+08:00',
       eventEnd: '2026-08-30T18:00:00+08:00',
-    }), fetchedAt, now);
+    }), 'guangzhou', fetchedAt, now);
     const expired = normalizeActivity(raw({
       name: '已经结束的活动',
       eventStart: '2026-08-28T10:00:00+08:00',
       eventEnd: '2026-08-28T18:00:00+08:00',
-    }), fetchedAt, now);
+    }), 'guangzhou', fetchedAt, now);
 
     const decision = removeExpiredActivities([future, ongoing, expired], now);
     expect(decision.activities.map((item) => item.status)).toEqual(['upcoming', 'ongoing']);
@@ -110,7 +124,7 @@ describe('live activity pipeline decisions', () => {
 
   it('supplements current records only with previous records from failed sources', () => {
     const previous = [
-      ...makeLive(2).map((item) => ({ ...item, sourceName: '失败源' })),
+      ...makeLive(2).map((item) => ({ ...item, sourceId: 'failed', sourceName: '失败源' })),
       ...makeLive(2).map((item, index) => ({
         ...item,
         id: `healthy-${index}`,
@@ -127,7 +141,8 @@ describe('live activity pipeline decisions', () => {
     const decision = selectSnapshot({
       previous,
       current,
-      failedSourceNames: ['失败源'],
+      failedSources: [{ id: 'failed', cityId: 'guangzhou' }],
+      cityIds: ['guangzhou'],
     });
     expect(decision).toMatchObject({
       usedFallback: true,
@@ -142,7 +157,8 @@ describe('live activity pipeline decisions', () => {
     expect(selectSnapshot({
       previous,
       current: [],
-      failedSourceNames: ['另一个来源'],
+      failedSources: [{ id: 'another', cityId: 'guangzhou' }],
+      cityIds: ['guangzhou'],
     })).toMatchObject({
       usedFallback: false,
       fallbackCount: 0,
