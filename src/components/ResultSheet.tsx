@@ -61,7 +61,7 @@ export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose
         <button className="sheet-close" type="button" aria-label="关闭结果" onClick={onClose}>×</button>
 
         <div className="ticket-topline" aria-hidden="true"><span>{city.englishName.toUpperCase()}</span><b>WEEKEND PASS</b><span>NO. {activity.id.slice(0, 6).toUpperCase()}</span></div>
-        <div className="ticket-stickers" aria-label="活动标签">
+        <div className="ticket-stickers" role="group" aria-label="活动标签">
           {activity.live && <span className="sticker sticker-live">本周限定</span>}
           {endingSoon && <span className="sticker sticker-ending">快结束了</span>}
           {activity.priceStatus === 'free' && <span className="sticker sticker-free">免费</span>}

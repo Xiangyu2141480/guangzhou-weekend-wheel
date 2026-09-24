@@ -83,6 +83,7 @@ test('marks supported live facts and links to the official source', () => {
 
   expect(screen.getByText('本周限定')).toBeInTheDocument();
   expect(screen.getByText('快结束了')).toBeInTheDocument();
+  expect(screen.getByRole('group', { name: '活动标签' })).toBeInTheDocument();
   expect(within(screen.getByLabelText('活动标签')).getByText('免费')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: '查看官方详情' })).toHaveAttribute('href', liveActivity.sourceUrl);
   expect(screen.getByRole('link', { name: '查看官方详情' })).toHaveAttribute(
