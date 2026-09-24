@@ -104,9 +104,24 @@ for (const city of launchCities) {
     const expectNoRuntimeErrors = monitorRuntime(page);
     const wheel = page.getByLabel(`${city.name}周末随机转盘`);
     await page.getByRole('button', { name: '看展' }).click();
-    const firstBatch = await wheel.getAttribute('data-candidate-ids');
-    await page.getByRole('button', { name: '换一批' }).click();
-    await expect.poll(() => wheel.getAttribute('data-candidate-ids')).not.toBe(firstBatch);
+    const poolSizes = await page.locator('.pool-status b').textContent();
+    const sizeMatch = poolSizes?.match(/符合 (\d+) 个 · 本轮 (\d+) 个/u);
+    expect(sizeMatch, `无法读取 ${city.name} 的 eligible/candidate 规模`).not.toBeNull();
+    const eligibleCount = Number(sizeMatch![1]);
+    const candidateCount = Number(sizeMatch![2]);
+    const readCandidateIds = async () =>
+      (await wheel.getAttribute('data-candidate-ids'))?.split(',').sort() ?? [];
+    const firstBatchIds = await readCandidateIds();
+    expect(firstBatchIds).toHaveLength(candidateCount);
+
+    const reroll = page.getByRole('button', { name: '换一批' });
+    await reroll.click();
+    if (eligibleCount > candidateCount) {
+      await expect.poll(readCandidateIds).not.toEqual(firstBatchIds);
+    } else {
+      await expect.poll(readCandidateIds).toEqual(firstBatchIds);
+      await expect(reroll).toBeEnabled();
+    }
 
     await page.getByRole('button', { name: '开转！' }).click();
     const result = page.getByRole('dialog', { name: '命运决定了！' });
