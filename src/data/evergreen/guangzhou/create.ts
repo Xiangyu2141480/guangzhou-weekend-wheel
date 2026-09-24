@@ -3,8 +3,16 @@ import type {
   ActivityTimeTag,
   EvergreenActivity,
   IndoorOutdoor,
-} from '../types';
-import { toGuangzhouActivityV2 } from '../guangzhouCompatibility';
+} from '../../types';
+
+function stableId(legacyId: string): string {
+  const collisionSlugs: Readonly<Record<string, string>> = {
+    'v2-guangdong-arts-theatre': 'guangdong-arts-theatre-stage-show',
+    'v2-xinghai-concert-hall': 'xinghai-concert-hall-weekend-concert',
+  };
+  const slug = collisionSlugs[legacyId] ?? legacyId.replace(/^v2-/u, '');
+  return `place:guangzhou:${slug}`;
+}
 
 export function evergreen(
   id: string,
@@ -28,8 +36,11 @@ export function evergreen(
   if (/4[–-][68]|5 小时|6 小时|一整天/.test(duration)) timeTags.push('full-day');
   if (/夜|晚上|日落/.test(`${name}${tags}`)) timeTags.push('evening');
 
-  return toGuangzhouActivityV2({
-    id,
+  return {
+    schemaVersion: 2,
+    id: stableId(id),
+    legacyIds: [id],
+    cityId: 'guangzhou',
     name,
     shortName,
     category,
@@ -48,5 +59,5 @@ export function evergreen(
     mapKeyword,
     transport,
     live: false,
-  });
+  };
 }

@@ -3,7 +3,6 @@ import { getDataUrl } from '../config/pages';
 import { isTrustedHttpsUrl } from '../config/trustedUrls';
 import type { Activity, LiveActivity } from '../data/types';
 import { isActivity } from '../data/types';
-import { upgradeGuangzhouActivity } from '../data/guangzhouCompatibility';
 import { getLiveStatus, isExpired } from '../utils/date';
 
 export interface ActivitySyncStatus {
@@ -43,22 +42,21 @@ const ISO_DATE_TIME_WITH_ZONE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/u;
 
 function isPublishableLiveActivity(value: unknown): value is LiveActivity {
-  const activity = upgradeGuangzhouActivity(value);
-  if (!isActivity(activity) || !activity.live) return false;
-  const start = ISO_DATE_TIME_WITH_ZONE.test(activity.eventStart)
-    ? new Date(activity.eventStart)
+  if (!isActivity(value) || !value.live) return false;
+  const start = ISO_DATE_TIME_WITH_ZONE.test(value.eventStart)
+    ? new Date(value.eventStart)
     : null;
-  const end = activity.eventEnd && ISO_DATE_TIME_WITH_ZONE.test(activity.eventEnd)
-    ? new Date(activity.eventEnd)
+  const end = value.eventEnd && ISO_DATE_TIME_WITH_ZONE.test(value.eventEnd)
+    ? new Date(value.eventEnd)
     : null;
   return Boolean(
-    activity.name.trim() &&
-      activity.venue.trim() &&
-      activity.sourceName.trim() &&
-      isTrustedHttpsUrl(activity.sourceUrl) &&
+    value.name.trim() &&
+      value.venue.trim() &&
+      value.sourceName.trim() &&
+      isTrustedHttpsUrl(value.sourceUrl) &&
       start &&
       !Number.isNaN(start.getTime()) &&
-      (!activity.eventEnd || (end && !Number.isNaN(end.getTime()) && end >= start)),
+      (!value.eventEnd || (end && !Number.isNaN(end.getTime()) && end >= start)),
   );
 }
 
@@ -129,7 +127,6 @@ export function useActivityPool(
       if (activityResult.status === 'fulfilled' && Array.isArray(activityResult.value)) {
         const now = options.now ?? new Date();
         liveActivities = activityResult.value
-          .map(upgradeGuangzhouActivity)
           .filter(isPublishableLiveActivity)
           .filter((activity) => !isExpired(activity, now))
           .map((activity) => ({

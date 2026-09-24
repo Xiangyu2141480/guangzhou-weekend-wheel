@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { activities } from './activities';
-import { toGuangzhouActivityV2 } from './guangzhouCompatibility';
 import { isActivity, validateActivities } from './types';
 
 describe('isActivity', () => {
@@ -18,20 +17,6 @@ describe('isActivity', () => {
 
   it('rejects a district that does not belong to the activity city', () => {
     expect(isActivity({ ...activities[0], cityId: 'shanghai' })).toBe(false);
-  });
-
-  it('upgrades a Guangzhou V1 record without changing its UI-facing ID', () => {
-    const { schemaVersion: _schemaVersion, cityId: _cityId, ...legacy } = activities[0];
-    void _schemaVersion;
-    void _cityId;
-    const upgraded = toGuangzhouActivityV2(legacy);
-
-    expect(upgraded).toMatchObject({
-      schemaVersion: 2,
-      cityId: 'guangzhou',
-      id: activities[0].id,
-    });
-    expect(isActivity(upgraded)).toBe(true);
   });
 
   it('enforces global uniqueness across current and legacy IDs', () => {

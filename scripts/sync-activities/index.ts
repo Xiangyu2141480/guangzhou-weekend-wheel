@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { TRUSTED_ACTIVITY_SOURCE_HOSTS } from '../../src/config/trustedUrls';
 import { isActivity } from '../../src/data/types';
-import { upgradeGuangzhouActivity } from '../../src/data/guangzhouCompatibility';
 import { createFingerprint } from './normalize';
 import { deduplicateActivities } from './deduplicate';
 import { removeExpiredActivities } from './expire';
@@ -73,9 +72,8 @@ function asNormalizedActivity(
   value: unknown,
   allowedSourceHosts: readonly string[] = TRUSTED_ACTIVITY_SOURCE_HOSTS,
 ): NormalizedLiveActivity | null {
-  const upgraded = upgradeGuangzhouActivity(value);
-  if (!isActivity(upgraded) || !upgraded.live) return null;
-  const candidate = upgraded as NormalizedLiveActivity;
+  if (!isActivity(value) || !value.live) return null;
+  const candidate = value as NormalizedLiveActivity;
   if (validateRawActivity(candidate, allowedSourceHosts).length > 0) return null;
   return {
     ...candidate,
@@ -101,11 +99,10 @@ function validatedPreviousActivities(
   adapters: readonly SourceAdapter[],
 ): NormalizedLiveActivity[] {
   return values.flatMap((value) => {
-    const upgraded = upgradeGuangzhouActivity(value);
-    if (!isActivity(upgraded) || !upgraded.live) return [];
-    const source = adapters.find((adapter) => adapter.name === upgraded.sourceName);
+    if (!isActivity(value) || !value.live) return [];
+    const source = adapters.find((adapter) => adapter.name === value.sourceName);
     if (!source) return [];
-    const activity = asNormalizedActivity(upgraded, source.allowedSourceHosts);
+    const activity = asNormalizedActivity(value, source.allowedSourceHosts);
     return activity ? [activity] : [];
   });
 }
@@ -259,10 +256,9 @@ export function validateSyncOutput(
   }
   const activities = activitiesValue.map((item) => {
     if (sourceAdapters.length === 0) return asNormalizedActivity(item);
-    const upgraded = upgradeGuangzhouActivity(item);
-    if (!isActivity(upgraded) || !upgraded.live) return null;
-    const source = sourceAdapters.find((adapter) => adapter.name === upgraded.sourceName);
-    return source ? asNormalizedActivity(upgraded, source.allowedSourceHosts) : null;
+    if (!isActivity(item) || !item.live) return null;
+    const source = sourceAdapters.find((adapter) => adapter.name === item.sourceName);
+    return source ? asNormalizedActivity(item, source.allowedSourceHosts) : null;
   });
   if (activities.some((item) => item === null)) {
     throw new TypeError('live activity output contains an invalid record');
