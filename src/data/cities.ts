@@ -29,7 +29,7 @@ export const CITY_CONFIGS = [
       '东城区', '西城区', '朝阳区', '丰台区', '石景山区', '海淀区', '门头沟区', '房山区',
       '通州区', '顺义区', '昌平区', '大兴区', '怀柔区', '平谷区', '密云区', '延庆区',
     ],
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'shanghai',
@@ -41,7 +41,7 @@ export const CITY_CONFIGS = [
       '黄浦区', '徐汇区', '长宁区', '静安区', '普陀区', '虹口区', '杨浦区', '浦东新区',
       '闵行区', '宝山区', '嘉定区', '金山区', '松江区', '青浦区', '奉贤区', '崇明区',
     ],
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'guangzhou',
@@ -65,7 +65,7 @@ export const CITY_CONFIGS = [
       '福田区', '罗湖区', '南山区', '盐田区', '宝安区',
       '龙岗区', '龙华区', '坪山区', '光明区',
     ],
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'suzhou',
@@ -77,7 +77,7 @@ export const CITY_CONFIGS = [
       '姑苏区', '虎丘区', '吴中区', '相城区', '吴江区',
       '常熟市', '张家港市', '昆山市', '太仓市',
     ],
-    enabled: false,
+    enabled: true,
   },
 ] as const satisfies readonly CityConfig[];
 

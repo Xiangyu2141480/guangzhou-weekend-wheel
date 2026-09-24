@@ -1,0 +1,18 @@
+{
+  "normal": {
+    "url": "https://whlyj.sh.gov.cn/yshd/20251113/9f0fc69183ff42b88c0be570572b1d56.html",
+    "html": "<article><h1>跟着“海考”去旅行——摄影作品展</h1><p>展览时间：2025年11月13日-11月18日</p><p>展览地点：上海市群众艺术馆（徐汇区古宜路125号）一楼展厅</p><p>开放时间：9:00-17:00</p></article>"
+  },
+  "missingDate": {
+    "url": "https://whlyj.sh.gov.cn/yshd/20251113/missing.html",
+    "html": "<article><h1>缺少日期的展览</h1><p>展览地点：中华艺术宫（浦东新区）</p></article>"
+  },
+  "invalidUrl": {
+    "url": "https://example.com/yshd/20251113/fake.html",
+    "html": "<article><h1>伪造活动</h1><p>展览时间：2025年11月13日-11月18日</p><p>展览地点：中华艺术宫（浦东新区）</p></article>"
+  },
+  "empty": {
+    "url": "https://whlyj.sh.gov.cn/yshd/empty.html",
+    "html": "<article></article>"
+  }
+}

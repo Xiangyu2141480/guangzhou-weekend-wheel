@@ -1,0 +1,18 @@
+{
+  "normal": {
+    "url": "https://www.szmuseum.com/Exhibition/TemporaryDetails/7c8c387e-291e-4976-89e8-e52f1a266f10",
+    "html": "<main><h1>窗若生花——珠宝艺术展览</h1><p>展览时间：2026年9月25日（周五） - 10月24日（周六）</p><p>展览地点：苏州博物馆忠王府楠木厅</p><h2>展览介绍</h2></main>"
+  },
+  "missingDate": {
+    "url": "https://www.szmuseum.com/Exhibition/TemporaryDetails/missing",
+    "html": "<main><h1>缺少日期的展览</h1><p>展览地点：苏州博物馆本馆现代艺术厅</p></main>"
+  },
+  "invalidUrl": {
+    "url": "https://szmuseum.com.attacker.example/Exhibition/TemporaryDetails/fake",
+    "html": "<main><h1>伪造展览</h1><p>展览时间：2026年9月25日 - 10月24日</p><p>展览地点：苏州博物馆本馆现代艺术厅</p></main>"
+  },
+  "empty": {
+    "url": "https://www.szmuseum.com/Exhibition/TemporaryDetails/empty",
+    "html": "<main></main>"
+  }
+}

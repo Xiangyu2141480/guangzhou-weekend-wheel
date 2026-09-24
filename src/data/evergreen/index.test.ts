@@ -98,7 +98,7 @@ describe('evergreen activity pool', () => {
   it('only enables cities that meet the complete launch gate', () => {
     const enabledCities = CITY_IDS.filter((cityId) => getCityConfig(cityId).enabled);
 
-    expect(enabledCities).toEqual(['guangzhou']);
+    expect(enabledCities).toEqual(CITY_IDS);
     for (const cityId of enabledCities) {
       expect(getEvergreenActivities(cityId).length).toBeGreaterThanOrEqual(30);
     }

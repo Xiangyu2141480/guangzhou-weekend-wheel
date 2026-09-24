@@ -1,7 +1,11 @@
 export const TRUSTED_ACTIVITY_SOURCE_HOSTS = [
+  'beijing.gov.cn',
   'gzlib.org.cn',
   'mice-gz.org',
+  'szmuseum.com',
+  'whlyj.sh.gov.cn',
   'wglj.gz.gov.cn',
+  'wtl.sz.gov.cn',
 ] as const;
 
 export function isTrustedHttpsUrl(

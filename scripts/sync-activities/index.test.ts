@@ -230,17 +230,27 @@ describe('live activity sync orchestration', () => {
 });
 
 describe('city-aware source selection', () => {
-  it('registers all three Guangzhou adapters with explicit safety metadata', () => {
-    expect(defaultAdapters).toHaveLength(3);
+  it('registers at least one reviewed official source for every launch city', () => {
+    expect(defaultAdapters).toHaveLength(7);
     expect(defaultAdapters.every((source) =>
-      source.cityId === 'guangzhou' &&
       source.allowedHosts.length > 0 &&
       source.allowEmptyResult === false
     )).toBe(true);
+    expect(new Set(defaultAdapters.map((source) => source.cityId))).toEqual(new Set([
+      'beijing',
+      'shanghai',
+      'guangzhou',
+      'shenzhen',
+      'suzhou',
+    ]));
     expect(defaultAdapters.map((source) => source.id)).toEqual([
+      'beijing-city-events',
+      'shanghai-culture-events',
       'gz-library',
       'gz-exhibition',
       'gz-culture-performances',
+      'shenzhen-culture-events',
+      'suzhou-museum-exhibitions',
     ]);
   });
 

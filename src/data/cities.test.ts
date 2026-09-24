@@ -23,7 +23,7 @@ describe('city registry', () => {
     expect(new Set(CITY_CONFIGS.map((city) => city.adcode)).size).toBe(5);
     expect(CITY_CONFIGS.every((city) => city.timezone === 'Asia/Shanghai')).toBe(true);
     expect(CITY_CONFIGS.filter((city) => city.enabled).map((city) => city.id))
-      .toEqual(['guangzhou']);
+      .toEqual(CITY_IDS);
   });
 
   it('looks up city IDs and validates districts against their city', () => {
