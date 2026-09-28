@@ -1,10 +1,12 @@
 import { load } from 'cheerio';
 import { normalizeActivity, normalizeText } from '../normalize';
-import type { NormalizedLiveActivity, RawActivityRecord } from '../types';
+import type { NormalizedLiveActivity, RawActivityRecord, SourceAdapter } from '../types';
 import { validateRawActivity } from '../validate';
 import { requestText } from './http';
 
 export const CULTURE_PERMIT_URL = 'https://wglj.gz.gov.cn/gkmlpt/content/10/10968/post_10968082.html';
+const CITY_ID = 'guangzhou';
+const ALLOWED_HOSTS = ['wglj.gz.gov.cn'] as const;
 
 function districtFromVenue(venue: string): string {
   const district = ['天河', '越秀', '海珠', '荔湾', '番禺', '黄埔', '白云', '花都', '南沙', '增城', '从化']
@@ -44,7 +46,8 @@ export function parseGzCulturePerformances(
       district: districtFromVenue(venue),
       venue,
       ...dates,
-      sourceType: 'official',
+      sourceId: 'gz-culture-performances',
+      sourceType: 'government',
       sourceName: '广州市文化广电旅游局',
       sourceUrl,
       priceText: undefined,
@@ -58,8 +61,8 @@ export function parseGzCulturePerformances(
       transport: '请以演出场馆官方交通指引为准',
       bookingRequired: true,
     };
-    if (validateRawActivity(record).length > 0) return;
-    activities.push(normalizeActivity(record, fetchedAt, new Date(fetchedAt)));
+    if (validateRawActivity(record, CITY_ID, ALLOWED_HOSTS).length > 0) return;
+    activities.push(normalizeActivity(record, CITY_ID, fetchedAt, new Date(fetchedAt)));
   });
 
   return activities;
@@ -71,3 +74,13 @@ export async function fetchGzCulturePerformances(
   const html = await requestText(CULTURE_PERMIT_URL);
   return parseGzCulturePerformances(html, fetchedAt);
 }
+
+export const gzCulturePerformancesAdapter: SourceAdapter = {
+  id: 'gz-culture-performances',
+  cityId: CITY_ID,
+  name: '广州市文化广电旅游局',
+  sourceType: 'government',
+  allowedHosts: ALLOWED_HOSTS,
+  allowEmptyResult: false,
+  fetch: fetchGzCulturePerformances,
+};

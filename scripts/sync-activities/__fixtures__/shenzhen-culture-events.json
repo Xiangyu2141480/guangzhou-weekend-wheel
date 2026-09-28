@@ -1,0 +1,18 @@
+{
+  "normal": {
+    "url": "https://wtl.sz.gov.cn/bsfw/mzwhhd/mzhd/content/post_12997632.html",
+    "html": "<main><h1>月满中秋 灯映岭南——中秋花灯手作体验</h1><p>活动时间：2026年9月25日（周五）14:30—16:00</p><p>活动地点：深圳博物馆金田路馆（历史民俗）展楼出口旁“深博雅集”空间</p><h2>活动详情</h2></main>"
+  },
+  "missingDate": {
+    "url": "https://wtl.sz.gov.cn/bsfw/mzwhhd/mzhd/content/post_12997633.html",
+    "html": "<main><h1>缺少日期的体验活动</h1><p>活动地点：深圳博物馆同心路馆报告厅</p></main>"
+  },
+  "invalidUrl": {
+    "url": "javascript:alert(1)",
+    "html": "<main><h1>伪造活动</h1><p>活动时间：2026年9月25日14:30—16:00</p><p>活动地点：深圳博物馆金田路馆</p></main>"
+  },
+  "empty": {
+    "url": "https://wtl.sz.gov.cn/bsfw/mzwhhd/mzhd/content/post_12997634.html",
+    "html": "<main></main>"
+  }
+}

@@ -1,12 +1,14 @@
 import { load } from 'cheerio';
-import { getGuangzhouDateKey } from '../../../src/utils/date';
+import { getChinaDateKey } from '../../../src/utils/date';
 import { normalizeActivity, normalizeText } from '../normalize';
-import type { NormalizedLiveActivity, RawActivityRecord } from '../types';
+import type { NormalizedLiveActivity, RawActivityRecord, SourceAdapter } from '../types';
 import { validateRawActivity } from '../validate';
 import { postForm } from './http';
 
 const LIST_URL = 'https://www.gzlib.org.cn/activity/actForecast_list.jspx';
 const DEFAULT_VENUE = '广州图书馆';
+const CITY_ID = 'guangzhou';
+const ALLOWED_HOSTS = ['gzlib.org.cn'] as const;
 
 function parseRange(value: string): { eventStart: string; eventEnd: string } | null {
   const match = normalizeText(value).match(
@@ -37,7 +39,8 @@ export function parseGzLibrary(html: string, fetchedAt: string): NormalizedLiveA
       district: '天河区',
       venue,
       ...dates,
-      sourceType: 'official',
+      sourceId: 'gz-library',
+      sourceType: 'official-venue',
       sourceName: '广州图书馆',
       sourceUrl: new URL(titleLink.attr('href') ?? '', LIST_URL).href,
       priceText: row.find('.yg2-price').first().text() || undefined,
@@ -51,8 +54,8 @@ export function parseGzLibrary(html: string, fetchedAt: string): NormalizedLiveA
       transport: '地铁3号线或5号线珠江新城站，步行前往广州图书馆',
       bookingRequired: true,
     };
-    if (validateRawActivity(record).length > 0) return;
-    activities.push(normalizeActivity(record, fetchedAt, new Date(fetchedAt)));
+    if (validateRawActivity(record, CITY_ID, ALLOWED_HOSTS).length > 0) return;
+    activities.push(normalizeActivity(record, CITY_ID, fetchedAt, new Date(fetchedAt)));
   });
 
   return activities;
@@ -71,8 +74,8 @@ export async function fetchGzLibrary(fetchedAt = new Date().toISOString()): Prom
     queryActPp: '',
     querySvcArea: '',
     actionSite: '',
-    queryActStartTime: getGuangzhouDateKey(start),
-    queryActEndTime: getGuangzhouDateKey(end),
+    queryActStartTime: getChinaDateKey(start),
+    queryActEndTime: getChinaDateKey(end),
     channelId: '476',
     categoryId: '',
     pageNo: '1',
@@ -80,3 +83,13 @@ export async function fetchGzLibrary(fetchedAt = new Date().toISOString()): Prom
   });
   return parseGzLibrary(html, fetchedAt);
 }
+
+export const gzLibraryAdapter: SourceAdapter = {
+  id: 'gz-library',
+  cityId: CITY_ID,
+  name: '广州图书馆',
+  sourceType: 'official-venue',
+  allowedHosts: ALLOWED_HOSTS,
+  allowEmptyResult: false,
+  fetch: fetchGzLibrary,
+};

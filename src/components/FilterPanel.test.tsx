@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { expect, test, vi } from 'vitest';
 import { FilterPanel } from './FilterPanel';
 
-function renderPanel() {
+function renderPanel(disabled = false) {
   const handlers = {
     onCategoryToggle: vi.fn(),
     onBudgetChange: vi.fn(),
@@ -23,6 +23,7 @@ function renderPanel() {
       time={null}
       states={new Set()}
       availableDistricts={['越秀区', '海珠区', '天河区']}
+      disabled={disabled}
       {...handlers}
     />,
   );
@@ -66,4 +67,22 @@ test('reports category and budget choices', async () => {
 
   expect(handlers.onCategoryToggle).toHaveBeenCalledWith('art');
   expect(handlers.onBudgetChange).toHaveBeenCalledWith(100);
+});
+
+test('disables every filter control when interaction is locked', async () => {
+  const user = userEvent.setup();
+  const handlers = renderPanel(true);
+
+  expect(screen.getByLabelText('偏好筛选')).toHaveAttribute('aria-disabled', 'true');
+  expect(screen.getByRole('button', { name: '看展' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '¥100以内' })).toBeDisabled();
+
+  await user.click(screen.getByText('再挑一点'));
+  expect(screen.getByRole('button', { name: '天河区' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '半天刚好' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '一个人放空' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '想待室内' })).toBeDisabled();
+
+  await user.click(screen.getByRole('button', { name: '看展' }));
+  expect(handlers.onCategoryToggle).not.toHaveBeenCalled();
 });

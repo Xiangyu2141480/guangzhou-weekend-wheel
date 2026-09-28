@@ -16,4 +16,4 @@ export const additionalEvergreenActivities = [
   ...experienceActivities,
   ...sportActivities,
   ...nightActivities,
-];
+] as const;

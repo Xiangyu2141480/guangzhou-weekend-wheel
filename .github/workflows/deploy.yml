@@ -7,11 +7,7 @@ on:
     - cron: '20 */6 * * *'
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-  actions: read
+permissions: {}
 
 concurrency:
   group: pages
@@ -20,28 +16,43 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Sync live activities
+      - name: Sync all five cities from production sources
         run: npm run sync:activities
-      - name: Test
+      - name: Validate manifest, five city snapshots, and Guangzhou compatibility
+        run: npm run sync:check
+      - name: Test data and source fixtures
+        run: npm run test:data
+      - name: Test unit and components
         run: npm run test:run
       - name: Lint
         run: npm run lint
       - name: Build
         run: npm run build
+      - name: Check build budget
+        run: npm run budget
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run 20 Playwright E2E tests
+        run: npm run qa:e2e -- --reporter=line,html
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: dist
 
@@ -51,7 +62,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      pages: write
+      id-token: write
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 const remoteBaseUrl = process.env.QA_BASE_URL;
+const chromiumExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 
 export default defineConfig({
   testDir: './e2e',
@@ -14,6 +15,9 @@ export default defineConfig({
     locale: 'zh-CN',
     reducedMotion: 'reduce',
     trace: 'retain-on-failure',
+    launchOptions: chromiumExecutablePath
+      ? { executablePath: chromiumExecutablePath }
+      : undefined,
   },
   webServer: remoteBaseUrl
     ? undefined

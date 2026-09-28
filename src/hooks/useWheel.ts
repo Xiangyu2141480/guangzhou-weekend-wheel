@@ -13,9 +13,10 @@ interface WheelOptions {
 const CANDIDATE_COUNT = 10;
 const CANDIDATE_HISTORY_LIMIT = CANDIDATE_COUNT * 2;
 const RESULT_HISTORY_LIMIT = 3;
+const REDUCED_MOTION_DURATION = 200;
 
 export function useWheel(items: Activity[], options: WheelOptions = {}) {
-  const duration = options.reducedMotion ? 700 : (options.duration ?? 3800);
+  const duration = options.reducedMotion ? REDUCED_MOTION_DURATION : (options.duration ?? 3800);
   const random = options.random ?? Math.random;
   const [mode, setModeState] = useState<RandomMode>(options.initialMode ?? 'fresh');
   const [lockedCandidates, setLockedCandidates] = useState<Activity[] | null>(null);
@@ -45,7 +46,8 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
     [items, mode, random, recentCandidateIds, recentSelectedIds],
   );
   const candidates =
-    lockedItems === items && lockedMode === mode && lockedCandidates
+    lockedCandidates &&
+    (isSpinning || selectedActivity || (lockedItems === items && lockedMode === mode))
       ? lockedCandidates
       : previewCandidates;
 
@@ -153,6 +155,25 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
     [setSelectedActivity],
   );
 
+  const reset = useCallback(() => {
+    if (spinLockRef.current) return false;
+
+    setLockedCandidates(null);
+    setLockedItems(null);
+    setLockedMode(null);
+    recentCandidateIdsRef.current = [];
+    recentSelectedIdsRef.current = [];
+    setRecentCandidateIds([]);
+    setRecentSelectedIds([]);
+    setSelectedIndex(-1);
+    setSelectedActivity(null);
+    setRotation(0);
+    setSpinCount(0);
+    setCategoryHistory([]);
+    setModeState(options.initialMode ?? 'fresh');
+    return true;
+  }, [options.initialMode]);
+
   return {
     candidates,
     selectedIndex,
@@ -168,6 +189,7 @@ export function useWheel(items: Activity[], options: WheelOptions = {}) {
     reroll,
     setMode,
     clearResult,
+    reset,
     duration,
   };
 }

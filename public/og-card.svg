@@ -9,10 +9,10 @@
   <path d="M72 488C260 434 372 545 560 486S900 445 1200 510V630H0V535Z" fill="#dfeeda"/>
   <rect x="75" y="72" width="326" height="48" rx="5" fill="#ffd978"/>
   <text x="238" y="105" text-anchor="middle" fill="#33302d" font-family="system-ui,sans-serif" font-size="20" font-weight="800" letter-spacing="4">YUWAN'S WEEKEND GUIDE</text>
-  <text x="70" y="226" fill="#33302d" font-family="system-ui,sans-serif" font-size="82" font-weight="900">今天去哪汪？</text>
-  <text x="74" y="285" fill="#33302d" font-family="system-ui,sans-serif" font-size="30" font-weight="800">广州周末随机决策器</text>
+  <text x="70" y="226" fill="#33302d" font-family="system-ui,sans-serif" font-size="82" font-weight="900">今天去哪玩？</text>
+  <text x="74" y="285" fill="#33302d" font-family="system-ui,sans-serif" font-size="30" font-weight="800">城市活动随机转盘</text>
   <line x1="74" y1="317" x2="560" y2="317" stroke="#33302d" stroke-width="6" stroke-linecap="round"/>
-  <text x="74" y="377" fill="#5e554e" font-family="system-ui,sans-serif" font-size="24" font-weight="700">189+ 灵感 × 本周活动 × 10 格转盘</text>
+  <text x="74" y="377" fill="#5e554e" font-family="system-ui,sans-serif" font-size="24" font-weight="700">五座城市 × 官方活动 × 10 格转盘</text>
   <rect x="72" y="414" width="308" height="66" rx="18" fill="#ffc8d4" stroke="#33302d" stroke-width="4"/>
   <text x="226" y="457" text-anchor="middle" fill="#33302d" font-family="system-ui,sans-serif" font-size="25" font-weight="900">鱼丸替你抽一个 🐾</text>
   <circle cx="885" cy="303" r="244" fill="#ffd978" stroke="#33302d" stroke-width="7" stroke-dasharray="13 10"/>

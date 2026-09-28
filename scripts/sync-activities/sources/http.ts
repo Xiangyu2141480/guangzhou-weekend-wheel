@@ -1,4 +1,6 @@
-const USER_AGENT = 'YuwanWeekendWheel/2.0 (+https://github.com/Xiangyu2141480/guangzhou-weekend-wheel)';
+const USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140.0 Safari/537.36';
+const CONTACT_URL = 'https://github.com/Xiangyu2141480/guangzhou-weekend-wheel';
 const TIMEOUT_MS = 12_000;
 const MAX_ATTEMPTS = 2;
 
@@ -10,6 +12,8 @@ export async function requestText(url: string, init: RequestInit = {}): Promise<
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
     const headers = new Headers(init.headers);
     headers.set('user-agent', USER_AGENT);
+    headers.set('from', CONTACT_URL);
+    headers.set('accept-encoding', 'identity');
     headers.delete('cookie');
 
     try {

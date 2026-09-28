@@ -1,6 +1,8 @@
 import type { Activity } from '../data/activities';
+import type { CityConfig } from '../data/cities';
 
 interface WheelProps {
+  city: CityConfig;
   candidates: Activity[];
   rotation: number;
   duration: number;
@@ -35,9 +37,9 @@ function sectorPath(index: number, total: number) {
   return `M 160 160 L ${start.x} ${start.y} A 147 147 0 ${angle > 180 ? 1 : 0} 1 ${end.x} ${end.y} Z`;
 }
 
-export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSpinning, onSpin, onReroll }: WheelProps) {
+export function Wheel({ city, candidates, rotation, duration, selectedIndex = -1, isSpinning, onSpin, onReroll }: WheelProps) {
   return (
-    <section className="wheel-stage" aria-label="转盘区域">
+    <section className="wheel-stage" aria-label="转盘区域" aria-describedby="wheel-candidates-title">
       <span className="wheel-scribble wheel-scribble-left" aria-hidden="true">✦</span>
       <span className="wheel-scribble wheel-scribble-right" aria-hidden="true">〰</span>
       <div className="wheel-pointer" aria-hidden="true"><span>🐾</span></div>
@@ -47,7 +49,7 @@ export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSp
             className="wheel-svg"
             viewBox="0 0 320 320"
             role="img"
-            aria-label="广州周末随机转盘"
+            aria-label={`${city.name}周末随机转盘`}
             data-candidate-ids={candidates.map((item) => item.id).join(',')}
             data-selected-index={selectedIndex}
             style={{ transform: `rotate(${rotation}deg)`, transitionDuration: `${duration}ms` }}
@@ -93,6 +95,19 @@ export function Wheel({ candidates, rotation, duration, selectedIndex = -1, isSp
       >
         <span aria-hidden="true">🔀</span> 换一批
       </button>
+      <div className="sr-only">
+        <h3 id="wheel-candidates-title">本轮转盘候选，共 {candidates.length} 个</h3>
+        <ol aria-label="本轮候选地点">
+          {candidates.map((candidate, index) => (
+            <li
+              key={candidate.id}
+              aria-current={!isSpinning && selectedIndex === index ? 'true' : undefined}
+            >
+              {city.name}，{candidate.name}，{candidate.district}，{candidate.budgetLabel}
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }

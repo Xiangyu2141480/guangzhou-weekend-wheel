@@ -35,4 +35,23 @@ describe('YuwanMascot', () => {
     render(<YuwanMascot state="idle" size={size} />);
     expect(screen.getByRole('img')).toHaveClass(className);
   });
+
+  it('reserves the intrinsic aspect ratio and defers non-critical mascots by default', () => {
+    render(<YuwanMascot state="idle" />);
+    const image = screen.getByRole('img');
+
+    expect(image).toHaveAttribute('width', '512');
+    expect(image).toHaveAttribute('height', '512');
+    expect(image).toHaveAttribute('decoding', 'async');
+    expect(image).toHaveAttribute('loading', 'lazy');
+    expect(image).toHaveAttribute('fetchpriority', 'low');
+  });
+
+  it('allows above-the-fold mascots to opt into eager, high-priority loading', () => {
+    render(<YuwanMascot state="point" loading="eager" fetchPriority="high" />);
+    const image = screen.getByRole('img');
+
+    expect(image).toHaveAttribute('loading', 'eager');
+    expect(image).toHaveAttribute('fetchpriority', 'high');
+  });
 });

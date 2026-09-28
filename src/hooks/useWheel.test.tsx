@@ -38,6 +38,28 @@ describe('useWheel', () => {
     expect(result.current.candidates.every((item) => activities.slice(20, 28).includes(item))).toBe(true);
   });
 
+  test('keeps the full round stable when items change during a spin', () => {
+    const initialItems = activities.slice(0, 12);
+    const replacementItems = activities.slice(20, 28);
+    const { result, rerender } = renderHook(
+      ({ items }) => useWheel(items, { duration: 100, random: () => 0.25 }),
+      { initialProps: { items: initialItems } },
+    );
+    const lockedIds = result.current.candidates.map((item) => item.id);
+
+    act(() => result.current.spin());
+    const preselected = result.current.candidates[result.current.selectedIndex];
+    rerender({ items: replacementItems });
+
+    expect(result.current.candidates.map((item) => item.id)).toEqual(lockedIds);
+    act(() => vi.advanceTimersByTime(100));
+    expect(result.current.selectedActivity).toEqual(preselected);
+    expect(result.current.candidates.map((item) => item.id)).toEqual(lockedIds);
+
+    act(() => result.current.clearResult());
+    expect(result.current.candidates.every((item) => replacementItems.includes(item))).toBe(true);
+  });
+
   test('rerolls ten candidates without selecting a result and retains two rounds of history', () => {
     let seed = 7;
     const random = () => {
@@ -57,7 +79,7 @@ describe('useWheel', () => {
     expect(result.current.recentCandidateIds).toHaveLength(20);
   });
 
-  test('changes mode while idle and ignores reroll while spinning', () => {
+  test('changes mode while idle and rejects every wheel mutation while spinning', () => {
     const { result } = renderHook(() =>
       useWheel(activities.slice(0, 24), { duration: 100 }),
     );
@@ -67,12 +89,56 @@ describe('useWheel', () => {
 
     act(() => result.current.spin());
     const lockedIds = result.current.candidates.map((item) => item.id);
+    const lockedRotation = result.current.rotation;
+    let spunAgain = true;
     let rerolled = true;
+    let changedMode = true;
     act(() => {
+      spunAgain = result.current.spin();
       rerolled = result.current.reroll();
+      changedMode = result.current.setMode('fresh');
     });
 
+    expect(spunAgain).toBe(false);
     expect(rerolled).toBe(false);
+    expect(changedMode).toBe(false);
+    expect(result.current.mode).toBe('fate');
     expect(result.current.candidates.map((item) => item.id)).toEqual(lockedIds);
+    expect(result.current.rotation).toBe(lockedRotation);
+  });
+
+  test('uses the shared short duration when reduced motion is requested', () => {
+    const { result } = renderHook(() =>
+      useWheel(activities.slice(0, 10), { reducedMotion: true }),
+    );
+
+    expect(result.current.duration).toBe(200);
+    act(() => result.current.spin());
+    act(() => vi.advanceTimersByTime(199));
+    expect(result.current.isSpinning).toBe(true);
+    act(() => vi.advanceTimersByTime(1));
+    expect(result.current.isSpinning).toBe(false);
+  });
+
+  test('resets candidates, result, and both histories while idle', () => {
+    const { result } = renderHook(() =>
+      useWheel(activities.slice(0, 24), { duration: 100, random: () => 0.25 }),
+    );
+
+    act(() => result.current.spin());
+    act(() => vi.advanceTimersByTime(100));
+    expect(result.current.selectedActivity).not.toBeNull();
+    expect(result.current.recentCandidateIds.length).toBeGreaterThan(0);
+    expect(result.current.recentSelectedIds.length).toBeGreaterThan(0);
+
+    act(() => {
+      expect(result.current.reset()).toBe(true);
+    });
+
+    expect(result.current.selectedActivity).toBeNull();
+    expect(result.current.recentCandidateIds).toEqual([]);
+    expect(result.current.recentSelectedIds).toEqual([]);
+    expect(result.current.spinCount).toBe(0);
+    expect(result.current.categoryHistory).toEqual([]);
   });
 });

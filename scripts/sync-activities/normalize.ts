@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { getGuangzhouDateKey, getLiveStatus } from '../../src/utils/date';
-import type { ActivityCategory, PriceStatus } from '../../src/data/types';
+import { getChinaDateKey, getLiveStatus } from '../../src/utils/date';
+import type { ActivityCategory, CityId, PriceStatus } from '../../src/data/types';
 import type { NormalizedLiveActivity, RawActivityRecord } from './types';
 import { validateRawActivity } from './validate';
 
@@ -53,8 +53,13 @@ function parsePrice(value?: string): PriceDecision {
   return { priceStatus: 'unknown', budget: null, budgetLabel: '价格待确认' };
 }
 
-export function createFingerprint(name: string, venue: string, eventStart: string): string {
-  const identity = [normalizeText(name), normalizeText(venue), getGuangzhouDateKey(eventStart)]
+export function createFingerprint(
+  cityId: CityId,
+  name: string,
+  venue: string,
+  eventStart: string,
+): string {
+  const identity = [cityId, normalizeText(name), normalizeText(venue), getChinaDateKey(eventStart)]
     .join('|')
     .toLocaleLowerCase('zh-CN');
   return createHash('sha1').update(identity).digest('hex');
@@ -62,25 +67,29 @@ export function createFingerprint(name: string, venue: string, eventStart: strin
 
 export function normalizeActivity(
   record: RawActivityRecord,
+  cityId: CityId,
   fetchedAt: string,
   now = new Date(),
+  allowedSourceHosts?: readonly string[],
 ): NormalizedLiveActivity {
-  const errors = validateRawActivity(record);
+  const errors = validateRawActivity(record, cityId, allowedSourceHosts);
   if (errors.length > 0) throw new TypeError(`Invalid activity fields: ${errors.join(', ')}`);
 
   const name = normalizeText(record.name);
   const venue = normalizeText(record.venue);
   const category = record.category ?? 'experience';
   const price = parsePrice(record.priceText);
-  const fingerprint = createFingerprint(name, venue, record.eventStart);
+  const fingerprint = createFingerprint(cityId, name, venue, record.eventStart);
 
   return {
-    id: `live-${fingerprint.slice(0, 16)}`,
+    schemaVersion: 2,
+    id: `event:${cityId}:${fingerprint.slice(0, 16)}`,
+    cityId,
     fingerprint,
     name,
     shortName: normalizeText(record.shortName ?? name).slice(0, 10),
     category,
-    district: normalizeText(record.district ?? '广州市'),
+    district: normalizeText(record.district),
     venue,
     budget: price.budget,
     budgetLabel: price.budgetLabel,
@@ -97,6 +106,7 @@ export function normalizeActivity(
     mapKeyword: normalizeText(record.mapKeyword ?? venue),
     transport: normalizeText(record.transport ?? '请以场馆官方交通指引为准'),
     live: true,
+    sourceId: record.sourceId,
     sourceType: record.sourceType,
     sourceName: normalizeText(record.sourceName),
     sourceUrl: record.sourceUrl,
