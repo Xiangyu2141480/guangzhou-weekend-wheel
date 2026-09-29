@@ -1,4 +1,8 @@
-import { createEvergreenActivities, evergreenPlace as p } from '../create';
+import {
+  createEvergreenActivities,
+  evergreenPlace as p,
+  expandedEvergreenPlace as e,
+} from '../create';
 
 const places = [
   p('capital-museum','去首都博物馆读懂北京城','首都博物馆','art','西城区','首都博物馆',0,'3–4 小时','indoor','博物馆,历史,建筑','🏛️','从古都沿革到京城民俗，一站补齐北京城市脉络。','通常周一闭馆，预约和开放时间以馆方公告为准。','北京 首都博物馆','地铁 1 号线木樨地站，步行约 10 分钟'),
@@ -33,6 +37,14 @@ const places = [
   p('liangma-river-night-walk','沿亮马河国际风情水岸夜走','亮马河夜走','night','朝阳区','亮马河国际风情水岸',50,'2–3 小时','outdoor','夜景,水岸,散步','✨','连续水岸步道和城市灯光适合饭后慢慢走。','雨雪天气留意亲水平台湿滑。','北京 亮马河国际风情水岸','地铁 10 号线亮马桥站，步行前往'),
   p('qianmen-night-walk','夜走前门大街与大栅栏','前门夜走','night','东城区','前门大街',80,'2–3 小时','outdoor','夜景,中轴线,老字号','🏮','夜晚的牌楼、街灯与老字号更有古都氛围。','留意末班地铁时间，不进入非开放胡同院落。','北京 前门大街','地铁 2/8 号线前门站直达'),
   p('olympic-park-night-view','去奥林匹克公园看夜景','奥园夜景','night','朝阳区','北京奥林匹克公园中心区',30,'2–3 小时','outdoor','夜景,地标,摄影','🌃','鸟巢与水立方亮灯后，广场呈现另一种城市尺度。','亮灯和开放安排以场馆及园区公告为准。','北京 奥林匹克公园 鸟巢','地铁 8 号线奥体中心站可达'),
+  e('national-museum-china','去中国国家博物馆看文明长卷','国家博物馆','art','东城区','中国国家博物馆',0,'4–6 小时','indoor','博物馆,历史,文物','🏺','地铁 1 号线天安门东站，步行前往'),
+  e('national-botanical-garden','在国家植物园走山林与温室','国家植物园','outdoor','海淀区','国家植物园北园',20,'4–6 小时','mixed','植物园,徒步,自然','🌺','地铁西郊线植物园站，步行前往'),
+  e('baitasi-food-walk','在白塔寺片区找胡同小馆','白塔寺觅食','food','西城区','白塔寺历史文化街区',120,'2–3 小时','mixed','胡同,小馆,街区漫游','🥢','地铁 2 号线阜成门站，步行前往'),
+  e('tianqiao-performing-arts-center','去天桥艺术中心看舞台演出','天桥艺术中心','show','西城区','北京天桥艺术中心',320,'3–4 小时','indoor','音乐剧,戏剧,剧场','🎭','地铁 8 号线天桥站，步行前往'),
+  e('langyuan-station','逛郎园 Station 的创意空间','郎园 Station','market','朝阳区','郎园 Station',120,'2–4 小时','mixed','文创,书店,工业更新','🛍️','地铁 14 号线将台站，换乘公交前往'),
+  e('china-railway-museum','在中国铁道博物馆看机车','铁道博物馆','experience','朝阳区','中国铁道博物馆东郊展馆',20,'3–4 小时','indoor','铁路,工业,亲子','🚂','地铁 15 号线崔各庄站，换乘公交前往'),
+  e('yongding-river-greenway-cycle','沿永定河绿道骑一段','永定河骑行','sport','门头沟区','永定河绿色港湾',0,'3–5 小时','outdoor','骑行,河岸,绿道','🚲','地铁 S1 线桥户营站，按导航骑行前往'),
+  e('sanlitun-night-walk','夜逛三里屯街区与城市灯光','三里屯夜游','night','朝阳区','三里屯太古里',150,'2–3 小时','outdoor','夜景,街区,城市漫游','✨','地铁 10 号线团结湖站，步行前往'),
 ] as const;
 
 export const beijingEvergreenActivities = createEvergreenActivities('beijing', places);
