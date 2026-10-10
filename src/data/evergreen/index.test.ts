@@ -20,9 +20,17 @@ describe('evergreen activity pool', () => {
     'night',
   ];
 
-  it('preserves all 189 Guangzhou choices in the city module', () => {
+  const expectedCityCounts: Readonly<Record<CityId, number>> = {
+    beijing: 40,
+    shanghai: 40,
+    guangzhou: 197,
+    shenzhen: 40,
+    suzhou: 40,
+  };
+
+  it('preserves legacy Guangzhou choices and includes the expanded pool', () => {
     expect(getEvergreenActivities('guangzhou')).toBe(evergreenActivities);
-    expect(evergreenActivities).toHaveLength(189);
+    expect(evergreenActivities).toHaveLength(expectedCityCounts.guangzhou);
     expect(
       evergreenActivities.every(
         (item) =>
@@ -57,7 +65,7 @@ describe('evergreen activity pool', () => {
     }
   });
 
-  it.each(CITY_IDS)('%s reaches the evergreen launch threshold', (cityId) => {
+  it.each(CITY_IDS)('%s exposes the reviewed expanded evergreen pool', (cityId) => {
     const cityActivities = getEvergreenActivities(cityId);
     const categoryCounts = new Map<ActivityCategory, number>(
       categories.map((category) => [category, 0]),
@@ -73,9 +81,9 @@ describe('evergreen activity pool', () => {
       expect(activity.budgetLabel.trim()).not.toBe('');
     }
 
-    expect(cityActivities.length).toBeGreaterThanOrEqual(30);
+    expect(cityActivities).toHaveLength(expectedCityCounts[cityId]);
     for (const category of categories) {
-      expect(categoryCounts.get(category)).toBeGreaterThanOrEqual(2);
+      expect(categoryCounts.get(category)).toBeGreaterThanOrEqual(3);
     }
   });
 
@@ -110,7 +118,11 @@ describe('evergreen activity pool', () => {
 
     expect(legacyIds).toHaveLength(189);
     expect(new Set(legacyIds).size).toBe(189);
-    expect(evergreenActivities.every((activity) => activity.legacyIds?.length === 1)).toBe(true);
+    expect(
+      evergreenActivities.filter((activity) => activity.legacyIds).every(
+        (activity) => activity.legacyIds?.length === 1,
+      ),
+    ).toBe(true);
     expect(legacyIds.every((legacyId) => !currentIds.has(legacyId))).toBe(true);
   });
 
