@@ -8,6 +8,7 @@ interface ActivityPoolStatusProps {
   eligibleCount: number;
   candidateCount: number;
   loading: boolean;
+  error?: string | null;
   generatedAt: string | null;
   availability: ActivityPoolAvailability;
 }
@@ -34,6 +35,7 @@ export function ActivityPoolStatus({
   eligibleCount,
   candidateCount,
   loading,
+  error,
   generatedAt,
   availability,
 }: ActivityPoolStatusProps) {
@@ -57,7 +59,7 @@ export function ActivityPoolStatus({
         />
       </div>
       <div className="pool-copy">
-        {loading ? (
+        {error ? <p>这座城市的常驻灵感暂未载入</p> : loading ? (
           <p>正在看看{cityName}这周有什么新鲜事…</p>
         ) : (
           <div className="pool-totals">
@@ -66,7 +68,7 @@ export function ActivityPoolStatus({
           </div>
         )}
         <b>符合 {eligibleCount} 个 · 本轮 {candidateCount} 个</b>
-        {!loading && <span className="pool-availability">{availabilityLabel}</span>}
+        {!loading && !error && <span className="pool-availability">{availabilityLabel}</span>}
         <small>{formatFreshness(generatedAt)}</small>
       </div>
     </aside>

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { CityId } from '../../src/data/cities';
+import { CITY_IDS, type CityId } from '../../src/data/cities';
 import { isActivity } from '../../src/data/types';
 import { normalizeActivity } from './normalize';
 import {
@@ -246,7 +246,7 @@ describe('live activity sync orchestration', () => {
 
 describe('city-aware source selection', () => {
   it('registers at least one reviewed official source for every launch city', () => {
-    expect(defaultAdapters).toHaveLength(7);
+    expect(defaultAdapters).toHaveLength(11);
     expect(defaultAdapters.every((source) =>
       source.allowedHosts.length > 0 &&
       source.allowEmptyResult === false
@@ -257,6 +257,10 @@ describe('city-aware source selection', () => {
       'guangzhou',
       'shenzhen',
       'suzhou',
+      'hangzhou',
+      'nanjing',
+      'chengdu',
+      'chongqing',
     ]));
     expect(defaultAdapters.map((source) => source.id)).toEqual([
       'beijing-city-events',
@@ -266,6 +270,10 @@ describe('city-aware source selection', () => {
       'gz-culture-performances',
       'shenzhen-culture-events',
       'suzhou-museum-exhibitions',
+      'hangzhou-silk-exhibitions',
+      'nanjing-museum-activities',
+      'chengdu-museum-exhibitions',
+      'chongqing-three-gorges-exhibitions',
     ]);
   });
 
@@ -296,30 +304,22 @@ describe('city-aware source selection', () => {
     expect(result.activities.every((item) => item.cityId === 'guangzhou')).toBe(true);
   });
 
-  it('publishes an atomic bootstrap snapshot for all five cities', async () => {
-    const adapters = ([
-      ['beijing', 'beijing-source'],
-      ['shanghai', 'shanghai-source'],
-      ['guangzhou', 'guangzhou-source'],
-      ['shenzhen', 'shenzhen-source'],
-      ['suzhou', 'suzhou-source'],
-    ] as const).map(([cityId, id]) => adapter({
-      id,
+  it('publishes an atomic bootstrap snapshot for all nine cities', async () => {
+    const adapters = CITY_IDS.map((cityId) => adapter({
+      id: `${cityId}-source`,
       cityId,
       name: `${cityId} source`,
       fetch: async () => [],
     }));
 
     const result = await runPublication(
-      ['beijing', 'shanghai', 'guangzhou', 'shenzhen', 'suzhou'],
+      CITY_IDS,
       { adapters, loadPrevious: async () => [], now },
     );
 
     expect(result.manifest.schemaVersion).toBe(2);
-    expect(result.manifest.cities.map((city) => city.cityId)).toEqual([
-      'beijing', 'shanghai', 'guangzhou', 'shenzhen', 'suzhou',
-    ]);
-    expect(result.snapshots).toHaveLength(5);
+    expect(result.manifest.cities.map((city) => city.cityId)).toEqual(CITY_IDS);
+    expect(result.snapshots).toHaveLength(9);
     expect(result.snapshots.every((snapshot) =>
       snapshot.availability === 'evergreen-only' &&
       snapshot.activities.length === 0
@@ -366,20 +366,14 @@ describe('city-aware source selection', () => {
   });
 
   it('rejects unsupported cities with the complete allow-list', () => {
-    expect(() => parseCliArgs(['--city', 'hangzhou'])).toThrow(
-      /beijing\|shanghai\|guangzhou\|shenzhen\|suzhou/u,
+    expect(() => parseCliArgs(['--city', 'wuhan'])).toThrow(
+      /beijing\|shanghai\|guangzhou\|shenzhen\|suzhou\|hangzhou\|nanjing\|chengdu\|chongqing/u,
     );
     expect(parseCliArgs(['--city', 'guangzhou'])).toEqual({
       validateOnly: false,
       cityIds: ['guangzhou'],
     });
-    expect(parseCliArgs(['--all']).cityIds).toEqual([
-      'beijing',
-      'shanghai',
-      'guangzhou',
-      'shenzhen',
-      'suzhou',
-    ]);
+    expect(parseCliArgs(['--all']).cityIds).toEqual(CITY_IDS);
   });
 
   it('keeps validate-only read-only and does not start synchronization', async () => {
@@ -394,7 +388,7 @@ describe('city-aware source selection', () => {
     expect(write).not.toHaveBeenCalled();
   });
 
-  it('validates the committed manifest, five bootstrap snapshots, and Guangzhou compatibility', async () => {
+  it('validates the committed manifest, nine bootstrap snapshots, and Guangzhou compatibility', async () => {
     await expect(validateCommittedFiles()).resolves.toBeUndefined();
   });
 
@@ -406,9 +400,7 @@ describe('city-aware source selection', () => {
       now,
     });
     const citySnapshot = createCitySnapshot(result, 'guangzhou', [adapter()]);
-    const cityIds: CityId[] = [
-      'beijing', 'shanghai', 'guangzhou', 'shenzhen', 'suzhou',
-    ];
+    const cityIds: CityId[] = [...CITY_IDS];
     const snapshots = cityIds.map((cityId) => cityId === 'guangzhou'
       ? citySnapshot
       : {

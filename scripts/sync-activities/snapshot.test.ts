@@ -1,3 +1,4 @@
+import { CITY_IDS } from '../../src/data/cities';
 import { describe, expect, it } from 'vitest';
 import { normalizeActivity } from './normalize';
 import {
@@ -94,9 +95,9 @@ describe('atomic city snapshots', () => {
       .toThrow(/availability/u);
   });
 
-  it('requires manifest entries to match all five snapshots', () => {
+  it('requires manifest entries to match all registered city snapshots', () => {
     const guangzhou = snapshot();
-    const snapshots = ['beijing', 'shanghai', 'guangzhou', 'shenzhen', 'suzhou']
+    const snapshots = CITY_IDS
       .map((cityId) => cityId === 'guangzhou'
         ? guangzhou
         : ({

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { activities } from '../data/activities';
-import { createFavoriteRecord, loadFavorites, saveFavorites } from './storage';
+import { createFavoriteRecord, loadFavorites, saveFavorites, resolveLegacyFavorites } from './storage';
 
 describe('favorites storage', () => {
   beforeEach(() => localStorage.clear());
@@ -20,4 +20,20 @@ describe('favorites storage', () => {
 
     expect(loadFavorites()).toEqual([]);
   });
+});
+
+
+test('resolves every legacy identity losslessly while retaining unknown favorites and the old key', () => {
+  localStorage.clear();
+  const oldIds = activities.flatMap((activity) => activity.legacyIds ?? []);
+  expect(oldIds).toHaveLength(189);
+  localStorage.setItem('gzww:favorites', JSON.stringify([...oldIds, 'old-removed-place']));
+  const provisional = loadFavorites();
+  expect(provisional[0]).toEqual({ activityId: oldIds[0], cityId: 'guangzhou', savedAt: null, snapshot: null });
+  const resolved = resolveLegacyFavorites(provisional, activities);
+  expect(resolved).toEqual([
+    ...activities.filter((activity) => activity.legacyIds?.length).map((activity) => createFavoriteRecord(activity, null)),
+    { activityId: 'old-removed-place', cityId: 'guangzhou', savedAt: null, snapshot: null },
+  ]);
+  expect(JSON.parse(localStorage.getItem('gzww:favorites')!)).toEqual([...oldIds, 'old-removed-place']);
 });

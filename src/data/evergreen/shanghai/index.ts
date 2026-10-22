@@ -1,3 +1,4 @@
+import { shanghaiDistrictExpansionActivities } from './districtExpansion';
 import {
   hours2To3,
   hours2To4,
@@ -55,4 +56,7 @@ const places = [
   e('xintiandi-night-walk','夜逛新天地与石库门街区','新天地夜游','night','黄浦区','上海新天地',150,hours2To3,'outdoor','夜景,石库门,街区','🌙',metro('10/13','一大会址·新天地')),
 ] as const;
 
-export const shanghaiEvergreenActivities = createEvergreenActivities('shanghai', places);
+export const shanghaiEvergreenActivities = [
+  ...createEvergreenActivities('shanghai', places),
+  ...shanghaiDistrictExpansionActivities,
+];

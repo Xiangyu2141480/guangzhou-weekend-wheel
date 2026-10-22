@@ -1,3 +1,4 @@
+import { suzhouDistrictExpansionActivities } from './districtExpansion';
 import {
   hours1To2,
   hours2To3,
@@ -56,4 +57,7 @@ const places = [
   e('guxumen-night-walk','夜走古胥门与环古城河','古胥门夜走','night','姑苏区','古胥门广场',0,hours2To3,'outdoor','夜景,古城河,城门','🌙',metro('2','胥江路')),
 ] as const;
 
-export const suzhouEvergreenActivities = createEvergreenActivities('suzhou', places);
+export const suzhouEvergreenActivities = [
+  ...createEvergreenActivities('suzhou', places),
+  ...suzhouDistrictExpansionActivities,
+];

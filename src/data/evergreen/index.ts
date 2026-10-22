@@ -1,3 +1,7 @@
+import { chongqingEvergreenActivities } from './chongqing';
+import { chengduEvergreenActivities } from './chengdu';
+import { nanjingEvergreenActivities } from './nanjing';
+import { hangzhouEvergreenActivities } from './hangzhou';
 import type { CityId } from '../cities';
 import type { EvergreenActivity } from '../types';
 import { validateActivities } from '../types';
@@ -13,6 +17,10 @@ const activitiesByCity: Readonly<Partial<Record<CityId, readonly EvergreenActivi
   guangzhou: guangzhouEvergreenActivities,
   shenzhen: shenzhenEvergreenActivities,
   suzhou: suzhouEvergreenActivities,
+  hangzhou: hangzhouEvergreenActivities,
+  nanjing: nanjingEvergreenActivities,
+  chengdu: chengduEvergreenActivities,
+  chongqing: chongqingEvergreenActivities,
 };
 
 export function getEvergreenActivities(cityId: CityId): readonly EvergreenActivity[] {

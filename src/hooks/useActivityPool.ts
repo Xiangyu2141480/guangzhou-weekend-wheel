@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getDataUrl } from '../config/pages';
 import { isTrustedHttpsUrl } from '../config/trustedUrls';
 import type { CityId } from '../data/cities';
-import { getEvergreenActivities } from '../data/evergreen';
-import type { Activity, LiveActivity } from '../data/types';
+import { loadCityEvergreen } from '../data/evergreenLoader';
+import type { Activity, EvergreenActivity, LiveActivity } from '../data/types';
 import { isActivity } from '../data/types';
 import { getLiveStatus, isExpired } from '../utils/date';
 
@@ -48,6 +48,7 @@ interface ActivityPoolState {
   availability: ActivityPoolAvailability;
   syncStatus: CityActivitySnapshot | null;
   loading: boolean;
+  error: string | null;
 }
 
 interface ActivityPoolOptions {
@@ -189,11 +190,11 @@ function cacheSnapshot(storage: Storage | null, snapshot: CityActivitySnapshot, 
 
 function buildState(
   cityId: CityId,
+  evergreen: readonly EvergreenActivity[],
   snapshot: CityActivitySnapshot | null,
   now: Date,
   fromCache = false,
 ): ActivityPoolState {
-  const evergreen = [...getEvergreenActivities(cityId)];
   const live = (snapshot?.activities ?? [])
     .filter((activity) => !isExpired(activity, now))
     .map((activity) => ({ ...activity, status: getLiveStatus(activity, now) }));
@@ -212,50 +213,42 @@ function buildState(
     availability,
     syncStatus: snapshot,
     loading: false,
+    error: null,
   };
 }
 
 function initialState(cityId: CityId | null): ActivityPoolState {
-  if (!cityId) {
-    return {
-      cityId: null,
-      activities: [],
-      liveCount: 0,
-      evergreenCount: 0,
-      availability: 'evergreen-only',
-      syncStatus: null,
-      loading: false,
-    };
-  }
-  const evergreen = [...getEvergreenActivities(cityId)];
   return {
     cityId,
-    activities: evergreen,
+    activities: [],
     liveCount: 0,
-    evergreenCount: evergreen.length,
+    evergreenCount: 0,
     availability: 'evergreen-only',
     syncStatus: null,
-    loading: true,
+    loading: cityId !== null,
+    error: null,
   };
 }
 
 export function useActivityPool(
   cityId: CityId | null,
   options: ActivityPoolOptions = {},
-): ActivityPoolState {
+): ActivityPoolState & { retry: () => void } {
   const baseUrl = options.baseUrl ?? import.meta.env.BASE_URL;
   const fetcher = options.fetcher ?? globalThis.fetch;
   const storage = getStorage(options.storage);
   const now = useMemo(() => options.now ?? new Date(), [options.now]);
-  const [state, setState] = useState<ActivityPoolState>(() => initialState(cityId));
+  const [attempt, setAttempt] = useState(0);
+  // A new token on every request also distinguishes A → B → A and retries.
+  const request = useMemo(() => ({ cityId, baseUrl, fetcher, storage, now, attempt }), [cityId, baseUrl, fetcher, storage, now, attempt]);
+  const [state, setState] = useState(() => ({ request, value: initialState(cityId) }));
+  const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
   useEffect(() => {
     if (!cityId) return;
-
     const controller = new AbortController();
     let active = true;
-
-    void (async () => {
+    const loadSnapshot = async () => {
       try {
         const manifest = await loadJson(fetcher, getDataUrl('manifest.json', baseUrl), controller.signal);
         const snapshotPath = getSnapshotPath(manifest, cityId);
@@ -263,23 +256,39 @@ export function useActivityPool(
         const value = await loadJson(fetcher, getDataUrl(snapshotPath, baseUrl), controller.signal);
         const snapshot = parseSnapshot(value, cityId);
         if (!snapshot) throw new TypeError(`Invalid ${cityId} snapshot`);
+        if (!active || controller.signal.aborted) return { snapshot: null, fromCache: false };
         cacheSnapshot(storage, snapshot, now);
-        if (active) setState(buildState(cityId, snapshot, now));
+        return { snapshot, fromCache: false };
       } catch (error) {
+        if (!active || controller.signal.aborted) return { snapshot: null, fromCache: false };
+        console.warn(`Activity snapshot unavailable for ${cityId}; using local fallback.`, error);
+        const snapshot = readCachedSnapshot(storage, cityId, now);
+        return { snapshot, fromCache: Boolean(snapshot) };
+      }
+    };
+    // Live data refreshes independently: a slow source must not block the wheel.
+    const liveRequest = loadSnapshot();
+    void (async () => {
+      try {
+        const evergreen = await loadCityEvergreen(cityId, { baseUrl, fetcher, storage, signal: controller.signal });
         if (!active) return;
-        const cached = readCachedSnapshot(storage, cityId, now);
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
-          console.warn(`Activity snapshot unavailable for ${cityId}; using local fallback.`, error);
+        setState({ request, value: buildState(cityId, evergreen.activities, null, now) });
+        const live = await liveRequest;
+        if (active && !controller.signal.aborted) {
+          setState({ request, value: buildState(cityId, evergreen.activities, live.snapshot, now, live.fromCache) });
         }
-        setState(buildState(cityId, cached, now, Boolean(cached)));
+      } catch {
+        if (active) {
+          controller.abort();
+          setState({ request, value: { ...initialState(cityId), loading: false, error: '常驻选项暂时加载失败，请重试。' } });
+        }
       }
     })();
-
     return () => {
       active = false;
       controller.abort();
     };
-  }, [baseUrl, cityId, fetcher, now, storage]);
+  }, [request, baseUrl, cityId, fetcher, now, storage]);
 
-  return state.cityId === cityId ? state : initialState(cityId);
+  return { ...(state.request === request ? state.value : initialState(cityId)), retry };
 }

@@ -10,17 +10,21 @@ import {
 } from './cities';
 
 describe('city registry', () => {
-  it('registers the five launch cities with unique stable identifiers', () => {
+  it('registers the nine launch cities with unique stable identifiers', () => {
     expect(CITY_IDS).toEqual([
       'beijing',
       'shanghai',
       'guangzhou',
       'shenzhen',
       'suzhou',
+      'hangzhou',
+      'nanjing',
+      'chengdu',
+      'chongqing',
     ]);
-    expect(new Set(CITY_CONFIGS.map((city) => city.id)).size).toBe(5);
-    expect(new Set(CITY_CONFIGS.map((city) => city.name)).size).toBe(5);
-    expect(new Set(CITY_CONFIGS.map((city) => city.adcode)).size).toBe(5);
+    expect(new Set(CITY_CONFIGS.map((city) => city.id)).size).toBe(9);
+    expect(new Set(CITY_CONFIGS.map((city) => city.name)).size).toBe(9);
+    expect(new Set(CITY_CONFIGS.map((city) => city.adcode)).size).toBe(9);
     expect(CITY_CONFIGS.every((city) => city.timezone === 'Asia/Shanghai')).toBe(true);
     expect(CITY_CONFIGS.filter((city) => city.enabled).map((city) => city.id))
       .toEqual(CITY_IDS);
@@ -28,10 +32,19 @@ describe('city registry', () => {
 
   it('looks up city IDs and validates districts against their city', () => {
     expect(isCityId('shenzhen')).toBe(true);
-    expect(isCityId('hangzhou')).toBe(false);
+    expect(isCityId('hangzhou')).toBe(true);
+    expect(isCityId('wuhan')).toBe(false);
     expect(getCityConfig('guangzhou').adcode).toBe('440100');
     expect(isDistrictInCity('guangzhou', '天河区')).toBe(true);
     expect(isDistrictInCity('shanghai', '天河区')).toBe(false);
+  });
+
+  it('uses the current Chongqing district names after the 2025 adjustment', () => {
+    const districts = getCityConfig('chongqing').districts;
+    expect(districts).toContain('两江新区');
+    expect(districts).not.toContain('江北区');
+    expect(districts).not.toContain('渝北区');
+    expect(districts).toContain('巴南区');
   });
 
   it('rejects duplicate city metadata and duplicate districts', () => {

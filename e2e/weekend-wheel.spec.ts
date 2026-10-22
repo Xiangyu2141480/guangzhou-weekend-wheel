@@ -42,7 +42,7 @@ test('首访选择上海，刷新后保持上海', async ({ page }) => {
   await page.reload();
   await expect(page.locator('.app-shell')).toHaveAttribute('data-city-id', 'shanghai');
   await expect(page.getByRole('dialog', { name: '先选一座城市' })).toHaveCount(0);
-  expectNoRuntimeErrors();
+  await expectNoRuntimeErrors();
 });
 
 test('上海切换深圳会清空筛选、结果和行政区，且不混入跨城活动', async ({ page }) => {
@@ -72,7 +72,7 @@ test('上海切换深圳会清空筛选、结果和行政区，且不混入跨�
     .split(',')
     .every((id) => id.startsWith('place:shenzhen:') || id.startsWith('event:shenzhen:')))
     .toBe(true);
-  expectNoRuntimeErrors();
+  await expectNoRuntimeErrors();
 });
 
 test('迁移旧 gzww 广州收藏且保留无法映射的记录', async ({ page }) => {
@@ -132,7 +132,7 @@ for (const city of launchCities) {
     await result.getByRole('button', { name: '关闭结果' }).click();
     await page.getByRole('button', { name: /我的收藏，共 1 个/ }).click();
     await expect(page.getByRole('dialog', { name: '我的收藏' }).locator('li')).toHaveCount(1);
-    expectNoRuntimeErrors();
+    await expectNoRuntimeErrors();
   });
 }
 
@@ -194,7 +194,7 @@ for (const degradationCase of degradationCases) {
       .split(',')
       .every((id) => id.startsWith('place:shanghai:')))
       .toBe(true);
-    expectNoRuntimeErrors();
+    await expectNoRuntimeErrors();
   });
 }
 
@@ -264,39 +264,78 @@ test('CitySelector、Result 和 Favorites 的 axe serious/critical 为 0', async
   await expectNoSeriousAxeViolations(page);
 });
 
-test('Pages 子路径加载 manifest、五城快照和广州兼容文件', async ({ page }) => {
+test('Pages 子路径加载注册城市的常驻数据、快照及广州兼容文件', async ({ page }) => {
   const requestedDataPaths = await mockDataRoutes(page);
   await page.addInitScript(
     ([key, value]) => window.localStorage.setItem(key, value),
     [selectedCityKey, 'guangzhou'],
   );
   await page.goto('./');
-  const statuses = await page.evaluate(async () => {
-    const paths = [
-      'data/manifest.json',
-      'data/cities/beijing.json',
-      'data/cities/shanghai.json',
-      'data/cities/guangzhou.json',
-      'data/cities/shenzhen.json',
-      'data/cities/suzhou.json',
-      'data/live-activities.json',
-      'data/sync-status.json',
-    ];
-    return Promise.all(paths.map(async (path) => (await fetch(path)).status));
-  });
-
-  expect(statuses).toEqual(Array(8).fill(200));
-  for (const suffix of [
-    '/data/manifest.json',
-    '/data/cities/beijing.json',
-    '/data/cities/shanghai.json',
-    '/data/cities/guangzhou.json',
-    '/data/cities/shenzhen.json',
-    '/data/cities/suzhou.json',
-    '/data/live-activities.json',
-    '/data/sync-status.json',
-  ]) {
-    expect(requestedDataPaths.some((path) =>
-      path === `/guangzhou-weekend-wheel${suffix}`)).toBe(true);
+  const paths = [
+    'data/manifest.json',
+    ...launchCities.flatMap(({ id }) => [`data/cities/${id}.json`, `data/evergreen/${id}.json`]),
+    'data/live-activities.json', 'data/sync-status.json',
+  ];
+  const statuses = await page.evaluate(async (paths) =>
+    Promise.all(paths.map(async (path) => (await fetch(path)).status)), paths);
+  expect(statuses).toEqual(paths.map(() => 200));
+  for (const path of paths) {
+    expect(requestedDataPaths).toContain(`/guangzhou-weekend-wheel/${path}`);
   }
+});
+
+
+test('今日玩法整体替换旧筛选并支持一键回到全部灵感', async ({ page }) => {
+  await startInCity(page, 'guangzhou');
+  const assertRuntime = monitorRuntime(page);
+  await page.getByRole('button', { name: '户外', exact: true }).click();
+  await page.getByRole('button', { name: '¥200以内' }).click();
+  await page.getByRole('button', { name: '雨天不无聊' }).click();
+  await page.getByText('再挑一点').click();
+  await expect(page.getByRole('button', { name: '想待室内' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '户外', exact: true })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', { name: '¥200以内' })).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('button', { name: '随便逛逛' }).click();
+  await expect(page.getByRole('button', { name: '想待室内' })).toHaveAttribute('aria-pressed', 'false');
+  await assertRuntime();
+});
+
+test('结果小任务可完成和换新，收藏与地图入口保持可用', async ({ page }) => {
+  await startInCity(page, 'hangzhou');
+  const assertRuntime = monitorRuntime(page);
+  await page.getByRole('button', { name: '开转！' }).click();
+  const result = page.getByRole('dialog', { name: '命运决定了！' });
+  await expect(result).toBeVisible();
+  await result.getByRole('button', { name: '标记完成' }).click();
+  await expect(result.getByRole('button', { name: /已完成/ })).toBeDisabled();
+  await result.getByRole('button', { name: '换一张' }).click();
+  await expect(result.getByRole('button', { name: '标记完成' })).toBeEnabled();
+  await result.getByRole('button', { name: '收藏这个地点' }).click();
+  await expect(result.getByRole('button', { name: '取消收藏这个地点' })).toBeVisible();
+  await expect(result.getByRole('link', { name: '去地图看看' })).toHaveAttribute('href', /https:\/\/uri.amap.com/);
+  await assertRuntime();
+});
+
+test.describe('动态背景', () => {
+  test.use({ reducedMotion: 'no-preference' });
+  test('主题和暂停设置持久化，系统减少动态会完整停止背景', async ({ page }) => {
+    await startInCity(page, 'guangzhou');
+    const background = page.locator('[data-ambient]');
+    await expect(background).toHaveAttribute('data-motion', 'running');
+    await expect.poll(() => background.locator('i').first().evaluate((element) =>
+      getComputedStyle(element).animationName)).toBe('ambient-drift');
+    await page.getByRole('button', { name: '暮色', exact: true }).click();
+    await page.getByRole('button', { name: '暂停动态', exact: true }).click();
+    await expect(background).toHaveAttribute('data-theme', 'dusk');
+    await expect.poll(() => background.locator('i').first().evaluate((element) =>
+      getComputedStyle(element).animationPlayState)).toBe('paused');
+    await page.reload();
+    await expect(background).toHaveAttribute('data-theme', 'dusk');
+    await expect(background).toHaveAttribute('data-motion', 'paused');
+    await page.getByRole('button', { name: '继续动态', exact: true }).click();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect(background).toHaveAttribute('data-motion', 'paused');
+    await expect.poll(() => background.locator('i').first().evaluate((element) =>
+      getComputedStyle(element).animationName)).toBe('none');
+  });
 });

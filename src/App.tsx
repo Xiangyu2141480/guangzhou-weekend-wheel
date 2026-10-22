@@ -1,4 +1,7 @@
 import { useMemo, useState } from 'react';
+import { AmbientBackground } from './components/AmbientBackground';
+import { QuickPlay } from './components/QuickPlay';
+import { getPlayPresetFilters, type PlayPresetId } from './utils/playPresets';
 import { Confetti } from './components/Confetti';
 import { ActivityPoolStatus } from './components/ActivityPoolStatus';
 import { CitySelector } from './components/CitySelector';
@@ -70,6 +73,8 @@ export default function App() {
     ? '转盘开始转动，正在选择周末去处。'
     : wheel.selectedActivity
       ? `抽取结果：${wheel.selectedActivity.name}，地点是${wheel.selectedActivity.venue}。`
+      : activityPool.error
+        ? `${city?.name ?? '当前城市'}的灵感暂未加载，请重试。`
       : !activityPool.loading && activityPool.availability === 'degraded'
         ? `${city?.name ?? '当前城市'}部分实时活动暂不可用，当前使用有效活动数据。`
         : !activityPool.loading && activityPool.availability === 'evergreen-only'
@@ -120,6 +125,18 @@ export default function App() {
     setStates(new Set());
   };
 
+  const applyPreset = (id: PlayPresetId) => {
+    if (wheel.isSpinning || activityPool.loading) return;
+    const filters = getPlayPresetFilters(id);
+    setSelectedCategories(filters.categories);
+    setBudget(filters.maxBudget);
+    setEnvironment(filters.environment);
+    setDistricts(filters.districts);
+    setTime(filters.time);
+    setStates(filters.states);
+    wheel.clearResult();
+  };
+
   const retry = () => {
     wheel.clearResult();
     wheel.spin();
@@ -137,6 +154,7 @@ export default function App() {
   if (!selectedCity || !city) {
     return (
       <main className="app-shell city-selection-shell">
+        <AmbientBackground />
         <CitySelector
           currentCityId={null}
           initial
@@ -159,14 +177,14 @@ export default function App() {
       <div
         className="sr-only"
         role="status"
+        aria-label="转盘状态"
         aria-live="polite"
         aria-atomic="true"
         data-a11y-announcer
       >
         {announcement}
       </div>
-      <div className="doodle doodle-one" aria-hidden="true">✿</div>
-      <div className="doodle doodle-two" aria-hidden="true">★</div>
+      <AmbientBackground isSpinning={wheel.isSpinning} />
       <Header
         city={city}
         favoriteCount={favorites.favoriteIds.length}
@@ -174,6 +192,8 @@ export default function App() {
         onOpenCitySelector={() => setCitySelectorOpen(true)}
         onOpenFavorites={() => setFavoritesOpen(true)}
       />
+
+      <div className="play-note"><QuickPlay disabled={wheel.isSpinning || activityPool.loading} onSelect={applyPreset} /></div>
 
       <FilterPanel
         categories={selectedCategories}
@@ -190,7 +210,7 @@ export default function App() {
         onTimeChange={setTime}
         onStateToggle={toggleState}
         onReset={resetFilters}
-        disabled={wheel.isSpinning}
+        disabled={wheel.isSpinning || activityPool.loading}
       />
 
       <ActivityPoolStatus
@@ -200,6 +220,7 @@ export default function App() {
         eligibleCount={filteredActivities.length}
         candidateCount={wheel.candidates.length}
         loading={activityPool.loading}
+        error={activityPool.error}
         generatedAt={activityPool.syncStatus?.generatedAt ?? null}
         availability={activityPool.availability}
       />
@@ -207,7 +228,11 @@ export default function App() {
       <section className="wheel-note">
         <div className="wheel-title"><span className="step-dot">2</span><div><h2>交给鱼丸吧！</h2><p>{filteredActivities.length > 0 ? `从 ${filteredActivities.length} 个好去处里锁定本轮 ${wheel.candidates.length} 个` : '这个要求有点难倒鱼丸了……'}</p></div></div>
         <ModeSwitch mode={wheel.mode} onChange={wheel.setMode} disabled={wheel.isSpinning} />
-        {filteredActivities.length > 0 ? (
+        {activityPool.loading ? (
+          <div className="empty-state" role="status" aria-label="加载灵感"><YuwanMascot state="search" alt="" /><h3>正在打开{city.name}的周末地图…</h3><p>只加载这座城市的灵感，马上就好。</p></div>
+        ) : activityPool.error ? (
+          <div className="empty-state" role="alert"><YuwanMascot state="rest" alt="" /><h3>灵感暂时没加载出来</h3><p>{activityPool.error}</p><button className="primary-button" type="button" onClick={activityPool.retry}>重新加载灵感</button></div>
+        ) : filteredActivities.length > 0 ? (
           <>
             <Wheel city={city} candidates={wheel.candidates} rotation={wheel.rotation} duration={wheel.duration} selectedIndex={wheel.selectedIndex} isSpinning={wheel.isSpinning} onSpin={wheel.spin} onReroll={wheel.reroll} />
             <div className={`wheel-dog ${wheel.isSpinning ? 'is-spinning' : ''}`}><YuwanMascot state={yuwanState} alt={wheel.isSpinning ? '正在晕乎乎转圈的鱼丸' : '陪你决定周末去处的鱼丸'} /></div>

@@ -1,3 +1,4 @@
+import { beijingDistrictExpansionActivities } from './districtExpansion';
 import {
   hours2To3,
   hours2To4,
@@ -55,4 +56,7 @@ const places = [
   e('sanlitun-night-walk','夜逛三里屯街区与城市灯光','三里屯夜游','night','朝阳区','三里屯太古里',150,hours2To3,'outdoor','夜景,街区,城市漫游','✨',metro('10','团结湖')),
 ] as const;
 
-export const beijingEvergreenActivities = createEvergreenActivities('beijing', places);
+export const beijingEvergreenActivities = [
+  ...createEvergreenActivities('beijing', places),
+  ...beijingDistrictExpansionActivities,
+];

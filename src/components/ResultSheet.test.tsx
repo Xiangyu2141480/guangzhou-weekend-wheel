@@ -124,7 +124,7 @@ test('traps focus, closes on Escape and restores focus to the opener', async () 
   expect(opener).toHaveAttribute('aria-hidden', 'true');
   expect(document.body.style.overflow).toBe('hidden');
   await user.tab({ shift: true });
-  expect(screen.getByRole('button', { name: '收藏这个地点' })).toHaveFocus();
+  expect(screen.getByRole('button', { name: '标记完成' })).toHaveFocus();
   await user.tab();
   expect(closeButton).toHaveFocus();
 
@@ -134,4 +134,17 @@ test('traps focus, closes on Escape and restores focus to the opener', async () 
   expect(opener).not.toHaveAttribute('aria-hidden');
   expect(document.body.style.overflow).toBe('');
   expect(opener).toHaveFocus();
+});
+
+test('includes an optional interactive weekend task without replacing favorite or map actions', async () => {
+  const user = userEvent.setup();
+  render(<ResultSheet activity={activities[0]} isFavorite={false}
+    onFavorite={vi.fn()} onRetry={vi.fn()} onClose={vi.fn()} />);
+  const dialog = screen.getByRole('dialog', { name: '命运决定了！' });
+  await user.click(within(dialog).getByRole('button', { name: '标记完成' }));
+  expect(within(dialog).getByRole('button', { name: /已完成/ })).toBeDisabled();
+  await user.click(within(dialog).getByRole('button', { name: '换一张' }));
+  expect(within(dialog).getByRole('button', { name: '标记完成' })).toBeEnabled();
+  expect(within(dialog).getByRole('button', { name: '收藏这个地点' })).toBeEnabled();
+  expect(within(dialog).getByRole('link', { name: '去地图看看' })).toBeInTheDocument();
 });

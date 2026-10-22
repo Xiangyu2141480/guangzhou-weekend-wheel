@@ -1,5 +1,9 @@
 export const TRUSTED_ACTIVITY_SOURCE_HOSTS = [
   'beijing.gov.cn',
+  'chinasilkmuseum.com',
+  'activity.njmuseum.com.cn',
+  'cdmuseum.com',
+  '3gmuseum.cn',
   'gzlib.org.cn',
   'mice-gz.org',
   'szmuseum.com',

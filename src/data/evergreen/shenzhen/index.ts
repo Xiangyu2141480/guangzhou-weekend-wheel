@@ -1,3 +1,4 @@
+import { shenzhenDistrictExpansionActivities } from './districtExpansion';
 import {
   hours2To3,
   hours2To4,
@@ -55,4 +56,7 @@ const places = [
   e('yantian-seaside-night-walk','沿盐田海滨栈道看夜色','盐田海滨夜走','night','盐田区','盐田海滨栈道',50,hours2To3,'outdoor','夜景,海滨,栈道','🌊',metro('2/8','海山')),
 ] as const;
 
-export const shenzhenEvergreenActivities = createEvergreenActivities('shenzhen', places);
+export const shenzhenEvergreenActivities = [
+  ...createEvergreenActivities('shenzhen', places),
+  ...shenzhenDistrictExpansionActivities,
+];

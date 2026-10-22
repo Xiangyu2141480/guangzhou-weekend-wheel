@@ -94,6 +94,10 @@ export async function mockDataRoutes(
     const pathname = new URL(route.request().url()).pathname;
     requestedDataPaths.push(pathname);
 
+    if (/\/data\/evergreen\/[a-z]+\.json$/u.test(pathname)) {
+      await route.continue();
+      return;
+    }
     if (pathname.endsWith('/data/manifest.json')) {
       await route.fulfill({
         json: {
@@ -155,6 +159,7 @@ export function monitorRuntime(
   }: RuntimeMonitorOptions = {},
 ) {
   const errors: string[] = [];
+  const cancelledMascots: Array<{ url: string; message: string }> = [];
   const isSameOrigin = (url: string) => {
     if (page.url() === 'about:blank') return false;
     return new URL(url).origin === new URL(page.url()).origin;
@@ -173,7 +178,16 @@ export function monitorRuntime(
   });
   page.on('requestfailed', (request) => {
     if (isSameOrigin(request.url())) {
-      errors.push(`resource: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? ''}`);
+      const url = request.url();
+      const failure = request.failure()?.errorText ?? '';
+      const message = `resource: ${request.method()} ${url} ${failure}`;
+      const isMascot = /\/assets\/(?:idle|think|happy|point|rest|search|run|spin|empty|favorite|map|ticket)-[^/]+\.png$/u
+        .test(new URL(url).pathname);
+      if (request.resourceType() === 'image' && failure === 'net::ERR_ABORTED' && isMascot) {
+        cancelledMascots.push({ url, message });
+      } else {
+        errors.push(message);
+      }
     }
   });
   page.on('response', (response) => {
@@ -187,8 +201,17 @@ export function monitorRuntime(
     }
   });
 
-  return () => {
-    expect(errors, errors.join('\n')).toEqual([]);
+  return async () => {
+    // A state change may cancel an old lazy mascot image. Only disregard it
+    // after confirming that no current mascot still references that URL.
+    const currentSources = await page.locator('img.yuwan-mascot').evaluateAll(
+      (images) => images.map((image) => (image as HTMLImageElement).src),
+    );
+    const current = new Set(currentSources);
+    const failures = [...errors, ...cancelledMascots
+      .filter(({ url }) => current.has(url))
+      .map(({ message }) => message)];
+    expect(failures, failures.join('\n')).toEqual([]);
   };
 }
 
