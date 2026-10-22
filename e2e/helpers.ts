@@ -202,14 +202,42 @@ export function monitorRuntime(
   });
 
   return async () => {
-    // A state change may cancel an old lazy mascot image. Only disregard it
-    // after confirming that no current mascot still references that URL.
-    const currentSources = await page.locator('img.yuwan-mascot').evaluateAll(
-      (images) => images.map((image) => (image as HTMLImageElement).src),
+    // A later lazy instance can reuse an old cancelled URL while still offscreen.
+    // If it is referenced now, require the current image to load and decode;
+    // a URL match alone cannot identify which request was cancelled.
+    await page.locator('img.yuwan-mascot').evaluateAll(
+      async (images, cancelledUrls) => (await Promise.all(images.map(async (node) => {
+        const image = node as HTMLImageElement;
+        const url = image.src;
+        if (!cancelledUrls.includes(url)) return null;
+        const loaded = () => image.complete && image.currentSrc === url && image.naturalWidth > 0;
+        if (!loaded()) {
+          image.loading = 'eager';
+          let timer: number | undefined;
+          try {
+            await Promise.race([
+              image.decode(),
+              new Promise<never>((_, reject) => {
+                timer = window.setTimeout(() => reject(new Error('Mascot decode timeout')), 5_000);
+              }),
+            ]);
+          } catch { /* An unresolved current image remains a failure below. */ }
+          finally { window.clearTimeout(timer); }
+        }
+      }))),
+      cancelledMascots.map(({ url }) => url),
     );
-    const current = new Set(currentSources);
+    // Recovery can itself span later cancellations or replacement instances.
+    // Read every current image again, then apply the final cancellation list.
+    const unresolvedSources = await page.locator('img.yuwan-mascot').evaluateAll(
+      (images) => images.filter((node) => {
+        const image = node as HTMLImageElement;
+        return !image.complete || image.currentSrc !== image.src || image.naturalWidth === 0;
+      }).map((node) => (node as HTMLImageElement).src),
+    );
+    const unresolved = new Set(unresolvedSources);
     const failures = [...errors, ...cancelledMascots
-      .filter(({ url }) => current.has(url))
+      .filter(({ url }) => unresolved.has(url))
       .map(({ message }) => message)];
     expect(failures, failures.join('\n')).toEqual([]);
   };
