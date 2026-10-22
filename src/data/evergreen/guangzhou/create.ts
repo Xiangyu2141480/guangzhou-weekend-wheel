@@ -61,3 +61,54 @@ export function evergreen(
     live: false,
   };
 }
+
+// Keep the legacy core's price labels and time-tag rules. They intentionally
+// differ from the later Guangzhou additions and the other cities' place seeds.
+export function coreEvergreen(
+  legacyId: string,
+  name: string,
+  shortName: string,
+  category: ActivityCategory,
+  district: string,
+  budget: number,
+  budgetLabel: string,
+  duration: string,
+  indoorOutdoor: IndoorOutdoor,
+  tags: string[],
+  emoji: string,
+  reason: string,
+  tip: string | undefined,
+  mapKeyword: string,
+  transport: string,
+): EvergreenActivity {
+  const timeTags: ActivityTimeTag[] = [];
+  if (/1(?:\.5)?[–-]2|1–2|2 小时/.test(duration)) timeTags.push('short');
+  if (/2[–-][34]|3[–-]4|2–4|3 小时/.test(duration)) timeTags.push('half-day');
+  if (/4[–-][68]|5 小时|一整天/.test(duration)) timeTags.push('full-day');
+  if (tags.some((tag) => /夜|日落|晚/.test(tag))) timeTags.push('evening');
+
+  return {
+    schemaVersion: 2,
+    id: `place:guangzhou:${legacyId}`,
+    legacyIds: [legacyId],
+    cityId: 'guangzhou',
+    name,
+    shortName,
+    category,
+    district,
+    budget,
+    budgetLabel,
+    duration,
+    indoorOutdoor,
+    tags,
+    emoji,
+    reason,
+    tip,
+    mapKeyword,
+    transport,
+    venue: mapKeyword,
+    priceStatus: budget === 0 ? 'free' : 'known',
+    timeTags: timeTags.length > 0 ? [...new Set(timeTags)] : ['half-day'],
+    live: false,
+  };
+}
