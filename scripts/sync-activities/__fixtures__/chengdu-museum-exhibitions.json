@@ -1,0 +1,14 @@
+{
+  "cityId": "chengdu",
+  "id": "chengdu-museum-exhibitions",
+  "name": "成都博物馆",
+  "listUrl": "https://www.cdmuseum.com/linzhan/",
+  "url": "https://www.cdmuseum.com/linzhan/202610/4540.html",
+  "eventStart": "2026-09-30T00:00:00+08:00",
+  "eventEnd": "2026-12-27T23:59:59+08:00",
+  "district": "青羊区",
+  "reviewedAt": "2026-10-22",
+  "note": "Minimal public HTML excerpt retaining the observed field structure; fixed parser evidence, not a live snapshot.",
+  "html": "<!doctype html><html><body><div class=\"show-content\">\n                    <div class=\"list list0\">\n                        <p class=\"t1\">展览名称</p>\n                        <p class=\"t2\">窑火中的艺术匠心：V&amp;A博物馆珍藏威基伍德陶瓷</p>\n                    </div>\n                    <div class=\"list\">\n                        <p class=\"t1\">展览时间</p>\n                        <p class=\"t2\">2026年9月30日至12月27日</p>\n                    </div>\n                    <div class=\"list\">\n                        <p class=\"t1\">展览地点</p>\n                        <p class=\"t2\">成都博物馆一层特展厅</p>\n                    </div>\n                </div></body></html>",
+  "listHtml": "<a href=\"https://www.cdmuseum.com/linzhan/202610/4540.html\">成都博物馆</a>"
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "cityId": "nanjing",
+  "generatedAt": null,
+  "availability": "evergreen-only",
+  "sources": [
+    {
+      "id": "nanjing-museum-activities",
+      "name": "南京博物院公众活动",
+      "sourceType": "official-venue",
+      "availability": "unavailable",
+      "fetched": 0,
+      "final": 0
+    }
+  ],
+  "counts": {
+    "fetched": 0,
+    "invalid": 0,
+    "expired": 0,
+    "duplicate": 0,
+    "current": 0,
+    "fallback": 0,
+    "final": 0
+  },
+  "warnings": [
+    "Live activity synchronization has not run yet."
+  ],
+  "activities": []
+}

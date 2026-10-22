@@ -36,6 +36,34 @@
       "availability": "evergreen-only",
       "generatedAt": null,
       "liveCount": 0
+    },
+    {
+      "cityId": "hangzhou",
+      "snapshot": "cities/hangzhou.json",
+      "availability": "evergreen-only",
+      "generatedAt": null,
+      "liveCount": 0
+    },
+    {
+      "cityId": "nanjing",
+      "snapshot": "cities/nanjing.json",
+      "availability": "evergreen-only",
+      "generatedAt": null,
+      "liveCount": 0
+    },
+    {
+      "cityId": "chengdu",
+      "snapshot": "cities/chengdu.json",
+      "availability": "evergreen-only",
+      "generatedAt": null,
+      "liveCount": 0
+    },
+    {
+      "cityId": "chongqing",
+      "snapshot": "cities/chongqing.json",
+      "availability": "evergreen-only",
+      "generatedAt": null,
+      "liveCount": 0
     }
   ]
 }

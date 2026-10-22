@@ -1,0 +1,14 @@
+{
+  "cityId": "chongqing",
+  "id": "chongqing-three-gorges-exhibitions",
+  "name": "重庆中国三峡博物馆",
+  "listUrl": "https://www.3gmuseum.cn/web/column/col5009287.html",
+  "url": "https://www.3gmuseum.cn/web/article/1470342097898315776/web/content_1470342097898315776.html",
+  "eventStart": "2026-02-10T00:00:00+08:00",
+  "eventEnd": "2026-05-10T23:59:59+08:00",
+  "district": "渝中区",
+  "reviewedAt": "2026-10-22",
+  "note": "Minimal public HTML excerpt retaining the observed field structure; fixed parser evidence, not a live snapshot.",
+  "html": "<!doctype html><html><body><h2>“福”马上来</h2><div class=\"ck-content\"><p style=\"line-height:2;\"><span style=\"font-family:微软雅黑, 'Microsoft Yahei';font-size:16px;\">展览名称：重庆中国三峡博物馆新春文化系列展览——“福”马上来</span></p><p style=\"line-height:2;\"><span style=\"font-family:微软雅黑, 'Microsoft Yahei';font-size:16px;\">展览地点：重庆中国三峡博物馆4楼临时展厅C</span></p><p style=\"line-height:2;\"><span style=\"font-family:微软雅黑, 'Microsoft Yahei';font-size:16px;\">展览时间：2026年2月10日—5月10日</span></p></div></body></html>",
+  "listHtml": "<a href=\"https://www.3gmuseum.cn/web/article/1470342097898315776/web/content_1470342097898315776.html\">重庆中国三峡博物馆</a>"
+}

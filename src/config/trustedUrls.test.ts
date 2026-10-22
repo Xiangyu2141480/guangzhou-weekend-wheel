@@ -11,6 +11,10 @@ describe('trusted activity source URLs', () => {
     'https://wtl.sz.gov.cn/bsfw/mzwhhd/mzhd/content/post_1.html',
     'https://www.szmuseum.com/Exhibition/TemporaryDetails/1',
     'https://wglj.gz.gov.cn/event/1',
+    'https://www.chinasilkmuseum.com/zz/info_17.aspx?itemid=31423',
+    'https://activity.njmuseum.com.cn/reservation/activity/out/activityOutList.do',
+    'https://www.cdmuseum.com/linzhan/202610/4540.html',
+    'https://www.3gmuseum.cn/web/column/col5009287.html',
   ])('allows HTTPS URLs on configured source hosts: %s', (url) => {
     expect(isTrustedHttpsUrl(url)).toBe(true);
   });

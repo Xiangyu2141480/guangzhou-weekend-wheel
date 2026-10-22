@@ -64,7 +64,7 @@ export function CitySelector({
             >
               <strong>{city.name}</strong>
               <span>{city.englishName.toUpperCase()}</span>
-              <small>常驻灵感与官方活动可用</small>
+              <small>城市灵感 · 官方活动同步</small>
             </button>
           ))}
         </div>

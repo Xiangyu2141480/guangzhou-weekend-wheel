@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && npm run budget",
-    "budget": "node scripts/check-build-budget.mjs",
+    "budget": "node scripts/check-build-budget.mjs && tsx scripts/check-evergreen-budget.ts",
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
@@ -15,7 +15,10 @@
     "sync:check": "tsx scripts/sync-activities/index.ts --validate-only",
     "test:data": "vitest run src/data scripts/sync-activities",
     "qa:e2e": "playwright test",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predev": "npm run build:evergreen",
+    "prebuild": "npm run build:evergreen",
+    "build:evergreen": "tsx scripts/build-evergreen.ts"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^6.1.0",

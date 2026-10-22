@@ -4,6 +4,10 @@ export const CITY_IDS = [
   'guangzhou',
   'shenzhen',
   'suzhou',
+  'hangzhou',
+  'nanjing',
+  'chengdu',
+  'chongqing',
 ] as const;
 
 export type CityId = (typeof CITY_IDS)[number];
@@ -77,6 +81,42 @@ export const CITY_CONFIGS = [
       '姑苏区', '虎丘区', '吴中区', '相城区', '吴江区',
       '常熟市', '张家港市', '昆山市', '太仓市',
     ],
+    enabled: true,
+  },
+  {
+    id: 'hangzhou',
+    name: '杭州',
+    englishName: 'Hangzhou',
+    adcode: '330100',
+    timezone: 'Asia/Shanghai',
+    districts: ['上城区', '拱墅区', '西湖区', '滨江区', '萧山区', '余杭区', '临平区', '钱塘区', '富阳区', '临安区', '桐庐县', '淳安县', '建德市'],
+    enabled: true,
+  },
+  {
+    id: 'nanjing',
+    name: '南京',
+    englishName: 'Nanjing',
+    adcode: '320100',
+    timezone: 'Asia/Shanghai',
+    districts: ['玄武区', '秦淮区', '建邺区', '鼓楼区', '浦口区', '栖霞区', '雨花台区', '江宁区', '六合区', '溧水区', '高淳区'],
+    enabled: true,
+  },
+  {
+    id: 'chengdu',
+    name: '成都',
+    englishName: 'Chengdu',
+    adcode: '510100',
+    timezone: 'Asia/Shanghai',
+    districts: ['锦江区', '青羊区', '金牛区', '武侯区', '成华区', '龙泉驿区', '青白江区', '新都区', '温江区', '双流区', '郫都区', '新津区', '都江堰市', '彭州市', '邛崃市', '崇州市', '简阳市', '金堂县', '大邑县', '蒲江县'],
+    enabled: true,
+  },
+  {
+    id: 'chongqing',
+    name: '重庆',
+    englishName: 'Chongqing',
+    adcode: '500000',
+    timezone: 'Asia/Shanghai',
+    districts: ['万州区', '涪陵区', '渝中区', '大渡口区', '沙坪坝区', '九龙坡区', '南岸区', '北碚区', '巴南区', '綦江区', '大足区', '长寿区', '江津区', '合川区', '永川区', '南川区', '璧山区', '铜梁区', '潼南区', '荣昌区', '开州区', '梁平区', '武隆区', '黔江区', '城口县', '丰都县', '垫江县', '忠县', '云阳县', '奉节县', '巫山县', '巫溪县', '石柱土家族自治县', '秀山土家族苗族自治县', '酉阳土家族苗族自治县', '彭水苗族土家族自治县', '两江新区'],
     enabled: true,
   },
 ] as const satisfies readonly CityConfig[];

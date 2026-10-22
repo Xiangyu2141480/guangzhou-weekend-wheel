@@ -1,3 +1,7 @@
+import { chongqingThreeGorgesExhibitionsAdapter } from './chongqingThreeGorgesExhibitions';
+import { chengduMuseumExhibitionsAdapter } from './chengduMuseumExhibitions';
+import { nanjingMuseumActivitiesAdapter } from './nanjingMuseumActivities';
+import { hangzhouSilkExhibitionsAdapter } from './hangzhouSilkExhibitions';
 import { beijingCityEventsAdapter } from './beijingCityEvents';
 import { gzCulturePerformancesAdapter } from './gzCulturePerformances';
 import { gzExhibitionAdapter } from './gzExhibition';
@@ -15,4 +19,8 @@ export const SOURCE_ADAPTERS = [
   gzCulturePerformancesAdapter,
   shenzhenCultureEventsAdapter,
   suzhouMuseumExhibitionsAdapter,
+  hangzhouSilkExhibitionsAdapter,
+  nanjingMuseumActivitiesAdapter,
+  chengduMuseumExhibitionsAdapter,
+  chongqingThreeGorgesExhibitionsAdapter,
 ] as const satisfies readonly SourceAdapter[];

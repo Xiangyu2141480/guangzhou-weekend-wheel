@@ -1,0 +1,14 @@
+{
+  "cityId": "hangzhou",
+  "id": "hangzhou-silk-exhibitions",
+  "name": "中国丝绸博物馆",
+  "listUrl": "https://www.chinasilkmuseum.com/zz/list_17.aspx",
+  "url": "https://www.chinasilkmuseum.com/zz/info_17.aspx?itemid=31423",
+  "eventStart": "2024-07-31T00:00:00+08:00",
+  "eventEnd": "2028-03-01T23:59:59+08:00",
+  "district": "西湖区",
+  "reviewedAt": "2026-10-22",
+  "note": "Minimal public HTML excerpt retaining the observed field structure; fixed parser evidence, not a live snapshot.",
+  "html": "<!doctype html><html><body><div class=\"detail_head\">\n                        <div class=\"detail_h\">\n                            天蚕灵机：中国蚕桑丝织技艺非物质文化遗产展</div>\n                        <!--<div class=\"detail_time\">\n                            2024-07-31</div>-->\n                    </div><div class=\"detail_text\"><p>展览地点：蚕桑馆和织造馆</p><p>展览时间：2024年7月31日 - 2028年3月1日</p></div></body></html>",
+  "listHtml": "<a href=\"https://www.chinasilkmuseum.com/zz/info_17.aspx?itemid=31423\">中国丝绸博物馆</a>"
+}

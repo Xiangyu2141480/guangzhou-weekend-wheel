@@ -2,6 +2,7 @@ import type { Activity, LiveActivity } from '../data/types';
 import { getCityConfig } from '../data/cities';
 import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 import { YuwanMascot } from './YuwanMascot';
+import { WeekendChallenge } from './WeekendChallenge';
 
 interface ResultSheetProps {
   activity: Activity;
@@ -97,6 +98,8 @@ export function ResultSheet({ activity, isFavorite, onFavorite, onRetry, onClose
           <button type="button" className="soft-button" aria-label="不服，再转一次" onClick={onRetry}>🔄 不服，再转一次</button>
           <button type="button" className="soft-button" aria-label={isFavorite ? '取消收藏这个地点' : '收藏这个地点'} aria-pressed={isFavorite} onClick={onFavorite}>{isFavorite ? '♥ 已收藏' : '♡ 收藏'}</button>
         </div>
+
+        <WeekendChallenge activity={activity} />
 
         <p className="source-note" id="result-sheet-source">
           {activity.live ? `活动信息来自${activity.sourceName}，` : '常驻灵感库收录，'}

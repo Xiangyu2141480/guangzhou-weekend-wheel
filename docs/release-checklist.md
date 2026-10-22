@@ -8,12 +8,12 @@
 
 ## 当前自动化覆盖
 
-- 数据测试：城市注册表、五城常驻池门槛、官方来源 fixture、同步降级、manifest/快照协议与广州兼容文件。
+- 数据测试：城市注册表、注册城市常驻池门槛、官方来源 fixture、同步降级、manifest/快照协议与广州兼容文件。
 - Vitest：数据、同步器、单元和组件测试。
 - Playwright：多城市主流程、响应式、降级和无障碍 E2E。
 - E2E 覆盖：
   - 375、390、430、1440 像素视口与水平溢出。
-  - 五城选择、刷新恢复、城市切换隔离和各城筛选/换批/开转。
+  - 注册城市选择、刷新恢复、城市切换隔离和各城筛选/换批/开转。
   - 固定候选、停止扇区、结果一致性和旋转期间禁止切换城市。
   - 多城市收藏持久化、旧广州收藏迁移、无结果一键重置。
   - 全键盘筛选、开转、收藏，以及结果和收藏弹层的焦点恢复。
@@ -69,6 +69,7 @@ git status --short
 
 ## 3. Draft PR 与 CI
 
+- [ ] 按当前用户授权边界，展示具体分支、提交和内容后，分别确认 Push、PR 创建与合并操作。
 - [ ] 推送功能分支并创建以 `main` 为 base 的 Draft PR。
 - [ ] PR 说明记录变更动机、用户影响、数据 fallback、性能与安全限制、验证结果和回滚方式。
 - [ ] Draft 阶段保持不可合并，等待 `.github/workflows/ci.yml` 的门禁完成。
@@ -89,12 +90,12 @@ git status --short
 
 ## 5. GitHub Pages 发布
 
-合并到 `main` 后，`.github/workflows/deploy.yml` 会同步北京、上海、广州、深圳、苏州的近期活动，验证 manifest、五城快照和广州兼容文件，运行测试、构建、E2E，并发布单一 `dist` artifact。
+合并到 `main` 后，`.github/workflows/deploy.yml` 会同步 `CITY_IDS` 中全部注册城市的近期活动，验证 manifest、注册城市快照和广州兼容文件，运行测试、构建、E2E，并发布单一 `dist` artifact。
 
 - [ ] `Deploy to GitHub Pages` workflow 对应刚记录的 `main` commit SHA。
-- [ ] build job 的五城同步、离线校验、数据/fixture 测试、Vitest、Lint、Build、E2E 和 artifact 上传全部通过。
+- [ ] build job 的注册城市同步、离线校验、数据/fixture 测试、Vitest、Lint、Build、E2E 和 artifact 上传全部通过。
 - [ ] deploy job 在 build 成功后执行，并显示正确的 `github-pages` 环境 URL。
-- [ ] Workflow Summary 列出五城 availability、每城来源成功/失败、current/fallback/final、最旧 `lastVerifiedAt`、warnings 与 commit SHA。
+- [ ] Workflow Summary 列出注册城市 availability、每城来源成功/失败、current/fallback/final、最旧 `lastVerifiedAt`、warnings 与 commit SHA。
 - [ ] Pages URL 已提供新版本；不要仅以 workflow 成功代替线上验收。
 
 定时同步也必须经过同一组部署门禁。来源失败只允许使用同城、同来源且 `lastVerifiedAt` 不超过 7 天的记录；过期 fallback 不得发布。没有实时数据时城市可发布为 `evergreen-only`，但 schema 错误、跨城污染、重复 ID、常驻池未达门槛或构建失败必须阻止整个 artifact。
@@ -114,8 +115,8 @@ npm run qa:e2e
 ### 数据计数与有效性
 
 - [ ] 页面根节点的 `data-pool-loading` 最终为 `false`。
-- [ ] `manifest.json` 使用 `schemaVersion: 2`，按注册表顺序只包含北京、上海、广州、深圳、苏州，路径均为 `cities/<cityId>.json`。
-- [ ] 五个城市快照的 `schemaVersion`、`cityId`、`generatedAt`、`availability`、`liveCount` 与 manifest 条目一致。
+- [ ] `manifest.json` 使用 `schemaVersion: 2`，按注册表顺序只包含 `CITY_IDS` 中全部注册城市，路径均为 `cities/<cityId>.json`。
+- [ ] 所有注册城市快照的 `schemaVersion`、`cityId`、`generatedAt`、`availability`、`liveCount` 与 manifest 条目一致。
 - [ ] 每城 `counts.final = activities.length = counts.current + counts.fallback`，每来源 `final` 之和也等于 `counts.final`。
 - [ ] `availability` 符合协议：有实时活动且全来源成功为 `fresh`；有实时活动且成功与失败并存为 `partial`；全失败但有有效 fallback 为 `stale`；无实时活动为 `evergreen-only`。
 - [ ] fallback 只来自同城、同来源，且相对本次 `generatedAt` 不超过 7 天；活动没有过期记录、重复 ID、重复 fingerprint、跨城数据或不可信 `sourceUrl`。
@@ -124,7 +125,7 @@ npm run qa:e2e
 
 ### 资源与控制台
 
-- [ ] HTML、JS、CSS、鱼丸图片、favicon、`data/manifest.json`、五个 `data/cities/*.json` 和两个广州兼容文件均成功响应。
+- [ ] HTML、JS、CSS、鱼丸图片、favicon、`data/manifest.json`、注册城市的 `data/evergreen/*.json`、`data/cities/*.json` 和两个广州兼容文件均成功响应。
 - [ ] 所有同源资源均使用 `/guangzhou-weekend-wheel/` 子路径，没有 4xx/5xx 或 mixed content。
 - [ ] 控制台无非预期 error，页面无 `pageerror`、未处理 Promise rejection。
 - [ ] 地图与官方来源链接使用 HTTPS、可信域名及安全的新窗口属性。
@@ -132,7 +133,7 @@ npm run qa:e2e
 ### 交互与多视口
 
 - [ ] 375、390、430、1440 像素视口无水平溢出、遮挡或不可操作控件。
-- [ ] 新用户依次选择五城；每城的筛选、换一批、开转、结果与收藏流程正常，刷新后恢复最近选择。
+- [ ] 新用户依次选择注册城市；每城的筛选、换一批、开转、结果与收藏流程正常，刷新后恢复最近选择。
 - [ ] 城市切换会重置筛选、候选和结果；行政区、活动、快照缓存与状态不跨城。
 - [ ] 键盘可完成主流程，Escape 关闭弹层后焦点回到触发按钮。
 - [ ] 多城市收藏刷新后仍存在；构造 `gzww:favorites` 后迁移数量不减少，无法映射项仍可查看并删除。
@@ -178,3 +179,15 @@ GitHub Pages 是静态托管，仓库无法控制所有 HTTP 响应安全头，�
 - 本地日志、临时截图、调试快照和仅用于人工验证的导出文件
 
 使用 `git status --short` 和 `git diff --cached --stat` 检查暂存区；发现上述内容时先移除，再提交发布变更。
+
+## 常驻内容与动态氛围补充验收
+
+- [ ] `npm run build` 自动生成常驻 JSON，未把生成文件加入暂存区。
+- [ ] 原体积门禁及「全部 JS + 最大单城 JSON ≤ 370,000 字节」联合门禁均通过，记录全部 JSON 总量。
+- [ ] 冷启动只请求所选城市的常驻池；旧广州收藏需要迁移时才额外加载广州。
+- [ ] 常驻池先就绪即可开转，近期活动延迟不阻塞；切城旧响应不能覆盖当前池。
+- [ ] 同城有效缓存离线回退、首次失败重试、未知或损坏缓存拒绝均通过。
+- [ ] 旧收藏迁移过程的增删不丢失、不复活；未知旧记录和旧键保留。
+- [ ] 今日玩法替换全部筛选，旋转中禁用；任务完成和换卡按活动重置。
+- [ ] 三种背景主题与暂停设置刷新后恢复；系统减少动态实际停止 CSS 动画。
+- [ ] 线上资源监控只排除已不被当前鱼丸引用的 `ERR_ABORTED` 图片；当前图片、脚本及 HTTP 错误仍阻断验收。

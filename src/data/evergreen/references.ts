@@ -97,4 +97,62 @@ export const evergreenReferencesByCity = {
       verifiedAt: '2026-09-24',
     },
   ],
+  hangzhou: [
+    {
+      name: '中国丝绸博物馆官方在展信息',
+      url: 'https://www.chinasilkmuseum.com/zz/list_17.aspx',
+      verifiedAt: '2026-10-22',
+    },
+    {
+      name: '杭州市政府西湖博物馆介绍',
+      url: 'https://www.ehangzhou.gov.cn/2021-06/18/c_277443.htm',
+      verifiedAt: '2026-10-22',
+    },
+  ],
+  nanjing: [
+    {
+      name: '南京市文化和旅游局国家等级旅游景区名录',
+      url: 'https://wlj.nanjing.gov.cn/zwfw/bszlxz/202601/t20260121_5773976.html',
+      verifiedAt: '2026-10-22',
+    },
+    {
+      name: '南京玄武区文博单位公共文化场馆开放信息',
+      url: 'https://www.xwzf.gov.cn/xwqrmzf/202507/t20250711_5605821.html',
+      verifiedAt: '2026-10-22',
+    },
+    {
+      name: '南京博物院官方公众活动预约',
+      url: 'https://activity.njmuseum.com.cn/reservation/activity/out/activityOutList.do',
+      verifiedAt: '2026-10-22',
+    },
+  ],
+  chengdu: [
+    {
+      name: '成都博物馆常设展览',
+      url: 'https://www.cdmuseum.com/zhanlan/',
+      verifiedAt: '2026-10-22',
+    },
+    {
+      name: '成都博物馆临展特展',
+      url: 'https://www.cdmuseum.com/linzhan/',
+      verifiedAt: '2026-10-22',
+    },
+  ],
+  chongqing: [
+    {
+      name: '重庆中国三峡博物馆临时展览',
+      url: 'https://www.3gmuseum.cn/web/column/col5009287.html',
+      verifiedAt: '2026-10-22',
+    },
+    {
+      name: '重庆市文化和旅游发展委员会A级旅游景区名单',
+      url: 'https://whlyw.cq.gov.cn/hdjl_221/xzzq/202601/t20260106_15295212.html',
+      verifiedAt: '2026-10-22',
+    },
+    {
+      name: '重庆市政府江北区渝北区北碚区行政区划调整公告',
+      url: 'https://wap.cq.gov.cn/ywdt/tzgg/202511/t20251110_15152219.html',
+      verifiedAt: '2026-10-22',
+    },
+  ],
 } as const satisfies Readonly<Record<string, readonly EvergreenReference[]>>;

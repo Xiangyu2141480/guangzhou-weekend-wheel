@@ -36,7 +36,7 @@ test('keeps all eight categories and budget choices above the fold', () => {
 
   expect(screen.getAllByTestId('category-filter')).toHaveLength(8);
   expect(screen.getByRole('button', { name: '运动一下' })).toBeVisible();
-  expect(screen.getByRole('button', { name: '夜游广州' })).toBeVisible();
+  expect(screen.getByRole('button', { name: '夜游' })).toBeVisible();
   expect(screen.getByRole('button', { name: '¥100以内' })).toBeVisible();
   expect(screen.getByText('再挑一点')).toBeVisible();
   expect(screen.queryByRole('button', { name: '天河区' })).not.toBeVisible();

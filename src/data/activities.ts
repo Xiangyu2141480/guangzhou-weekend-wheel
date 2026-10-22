@@ -22,5 +22,5 @@ export const categories: ReadonlyArray<{
   { id: 'market', label: '市集', emoji: '🛍️' },
   { id: 'experience', label: '好玩体验', emoji: '🎲' },
   { id: 'sport', label: '运动一下', emoji: '🏸' },
-  { id: 'night', label: '夜游广州', emoji: '🌙' },
+  { id: 'night', label: '夜游', emoji: '🌙' },
 ];

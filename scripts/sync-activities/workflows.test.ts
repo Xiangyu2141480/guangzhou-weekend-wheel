@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CITY_CONFIGS } from '../../src/data/cities';
 
 const packageJson = JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as {
   scripts: Record<string, string>;
@@ -34,13 +35,17 @@ describe('package automation contracts', () => {
     });
   });
 
-  it('collects exactly 20 Playwright scenarios without starting a server or browser', () => {
+  it('collects every enabled city journey and the full Playwright suite without starting a browser', () => {
     const output = execFileSync(
       resolve('node_modules/.bin/playwright'),
       ['test', '--list'],
       { cwd: resolve('.'), encoding: 'utf8' },
     );
-    expect(output).toMatch(/Total:\s+20 tests/u);
+    const total = Number(output.match(/Total:\s+(\d+) tests/u)?.[1]);
+    expect(total).toBeGreaterThanOrEqual(20);
+    for (const city of CITY_CONFIGS.filter((city) => city.enabled)) {
+      expect(output).toContain(`${city.name}可完成筛选、换批、开转、结果和收藏`);
+    }
   });
 });
 
@@ -67,12 +72,12 @@ describe('GitHub Actions YAML contracts', () => {
       'npm run budget',
       'npm audit --omit=dev --audit-level=high',
     ]);
-    expect(ci).toContain('Run 20 Playwright E2E tests');
+    expect(ci).toContain('Run Playwright E2E tests');
     expect(ci.match(/contents:\s+read/gu)).toHaveLength(2);
     expect(ci).not.toMatch(/contents:\s+write/u);
   });
 
-  it('syncs and validates five-city production data before one Pages artifact', () => {
+  it('syncs and validates registered-city production data before one Pages artifact', () => {
     expect(deploy).toContain('permissions: {}');
     expectCommandsInOrder(deploy, [
       'npm ci',
@@ -84,7 +89,7 @@ describe('GitHub Actions YAML contracts', () => {
       'npm run build',
       'npm run budget',
     ]);
-    expect(deploy).toContain('Run 20 Playwright E2E tests');
+    expect(deploy).toContain('Run Playwright E2E tests');
     expect(deploy).toContain('contents: read');
     expect(deploy).toContain('pages: read');
     expect(deploy).toContain('pages: write');

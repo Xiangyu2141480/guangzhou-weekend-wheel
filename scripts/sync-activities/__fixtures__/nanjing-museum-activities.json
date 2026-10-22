@@ -1,0 +1,13 @@
+{
+  "cityId": "nanjing",
+  "id": "nanjing-museum-activities",
+  "name": "南京博物院公众活动",
+  "listUrl": "https://activity.njmuseum.com.cn/reservation/activity/out/activityOutList.do",
+  "url": "https://activity.njmuseum.com.cn/reservation/activity/out/activityOutList.do",
+  "eventStart": "2026-10-24T10:00:00+08:00",
+  "district": "玄武区",
+  "reviewedAt": "2026-10-22",
+  "note": "Minimal public HTML excerpt retaining the observed field structure; fixed parser evidence, not a live snapshot.",
+  "html": "<!doctype html><html><body><div class=\"activity\"><ul><li class=\"acTitle\"><i class=\"icon-tit\"></i><a onclick=\"toLoad('4818')\">南博讲坛｜西藩长歌——民族融合视野下的吐谷浑考古（2026年第十期）</a></li><li class=\"acP\">南博讲坛2026年第10期</li><li class=\"acList\">\n\t\t\t                        \t<span class=\"spw60\">时间：</span><span class=\"color333\">2026-10-24 10:00</span><br>\n\t\t\t                        \t<span class=\"spw60\">地点：</span><span class=\"color333\">南京博物院小剧场</span><br>\n\t\t\t                        \t<br>\n\t\t\t                        \t<br>\n\t\t\t                        \n\t\t\t                    </li></ul></div></body></html>",
+  "listHtml": "<a href=\"https://activity.njmuseum.com.cn/reservation/activity/out/activityOutList.do\">南京博物院公众活动</a>"
+}

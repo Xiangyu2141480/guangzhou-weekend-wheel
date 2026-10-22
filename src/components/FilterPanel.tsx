@@ -1,4 +1,4 @@
-import { categories } from '../data/activities';
+import { categories } from '../data/categories';
 import type {
   ActivityCategory,
   ActivityTimeTag,

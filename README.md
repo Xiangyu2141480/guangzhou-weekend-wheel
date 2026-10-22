@@ -1,6 +1,6 @@
 # 今天去哪玩？
 
-「今天去哪玩？」是一个由鱼丸陪你做决定的城市周末随机 Web App。目前支持北京、上海、广州、深圳、苏州，把每座城市的常驻去处与近期官方活动合并成独立活动池，支持完整筛选、两种随机模式和固定 10 候选转盘；结果票根同时给出参考费用、交通、地图入口与动态活动的官方来源。
+「今天去哪玩？」是一个由鱼丸陪你做决定的城市周末随机 Web App。目前支持北京、上海、广州、深圳、苏州、杭州、南京、成都、重庆，共 9 城 525 个常驻选项，把每座城市的常驻去处与近期官方活动合并成独立活动池，支持完整筛选、两种随机模式和固定 10 候选转盘；结果票根同时给出参考费用、交通、地图入口与动态活动的官方来源。
 
 线上地址：<https://xiangyu2141480.github.io/guangzhou-weekend-wheel/>
 
@@ -9,6 +9,9 @@
 ![今天去哪玩？桌面端](docs/v2-desktop.png)
 
 ## 功能
+
+- 6 种「今日玩法」快捷筛选，24 张可完成或换新的「周末小任务」。
+- 晴日／暮色／夜游三种动态氛围，可暂停并记住偏好，遵循系统减少动态设置。
 
 - 8 类活动：看展、户外、吃喝、演出、市集、体验、运动、夜游。
 - 预算、区域、时长、室内外，以及约会、独处、朋友、休息、运动、拍照、吃喝、知识、夜间、免费等状态筛选。
@@ -38,7 +41,15 @@ V2 的鱼丸角色来自项目维护者在本次任务中提供的 5 张透明 P
 
 城市注册表位于 `src/data/cities.ts`，常驻池位于
 `src/data/evergreen/<cityId>/`。业务代码只通过
-`getEvergreenActivities(cityId)` 和 `getAllEvergreenActivities()` 读取数据。每条记录包含区域和场馆、参考预算、预计时长、室内外属性、状态标签、公共交通、推荐理由、出发提醒与核对来源。
+`getEvergreenActivities(cityId)` 和 `getAllEvergreenActivities()` 在构建与数据测试中读取源数据。前端通过 `evergreenLoader` 只加载所选城市。每条记录包含区域和场馆、参考预算、预计时长、室内外属性、状态标签、公共交通、推荐理由、出发提醒与核对来源。
+
+开发和构建会自动执行 `build:evergreen`，无损生成 `public/data/evergreen/<cityId>.json`。
+这些生成文件被 Git 忽略，不能手工维护或提交。前端校验城市、schema、ID、字段与校验和；
+成功后保存同城缓存，网络失败可用有效缓存。首次未缓存且请求失败时显示重试入口，
+不会借用其他城市的池。近期活动独立更新，不阻止常驻池就绪后开转。
+
+`npm run budget` 保留原 JS/CSS/图片检查，并额外约束「全部 JS + 最大单城常驻 JSON」
+不超过原有 370,000 字节 JS 阈值，同时报告全部 JSON 的实际总量。
 
 正式启用一座城市前，必须同时满足：
 
@@ -111,11 +122,11 @@ public/data/live-activities.json
 public/data/sync-status.json
 ```
 
-它们必须从广州 V2 城市快照派生并与其逐项一致，不运行第二套广州抓取。`npm run sync:check` 会离线校验 manifest、五城快照及这两个兼容文件。
+它们必须从广州 V2 城市快照派生并与其逐项一致，不运行第二套广州抓取。`npm run sync:check` 会离线校验 manifest、九城快照及这两个兼容文件。
 
 ### 收藏迁移
 
-多城市收藏写入 `where-to-go:favorites:v2`，记录 `activityId`、`cityId`、保存时间和展示快照。若 V2 数据缺失或非法，应用读取旧键 `gzww:favorites`，把旧 ID 按广州活动的 `id`/`legacyIds` 映射到新 ID；无法映射的旧收藏仍按广州收藏保留，可在收藏页删除。迁移会去重且可重复执行，暂不删除旧键，以便回滚。
+多城市收藏写入 `where-to-go:favorites:v2`，记录 `activityId`、`cityId`、保存时间和展示快照。若 V2 数据缺失或非法，应用读取旧键 `gzww:favorites`，把旧 ID 按广州活动的 `id`/`legacyIds` 映射到新 ID；无法映射的旧收藏仍按广州收藏保留，可在收藏页删除。迁移按需加载广州常驻数据；加载期间旧记录仍可删除，完成后只丰富尚存在的收藏，不覆盖新增或复活删除项。迁移会去重且可重复执行，暂不删除旧键，以便回滚。
 
 ## 本地开发
 
@@ -135,20 +146,20 @@ npm run sync:check             # 离线校验已提交数据，不访问网络�
 npm run test:data              # 校验城市数据、快照协议、来源适配器与 fixture
 npm run test:run               # Vitest 单元与组件测试
 npm run lint                   # ESLint
-npm run build                  # TypeScript + Vite 生产构建
+npm run build                  # 生成按城常驻JSON + TypeScript + Vite + 原预算及首城负载预算
 npm run qa:e2e                 # Playwright Chromium 浏览器流程
 ```
 
 如果当前网络无法下载 Playwright Chromium，可设置
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 指向本机 Chrome 后运行 `npm run qa:e2e`。
 
-自动化覆盖五城选择与持久化、城市切换隔离、常驻池门槛、来源 fixture、manifest/快照一致性、广州兼容文件、收藏迁移、四级 availability、7 天 fallback、375/390/430/1440 像素视口、键盘与焦点、reduced-motion、转盘结果一致性，以及 serious/critical axe 检查；E2E 还会拦截非预期控制台错误、页面异常和同源资源失败。
+自动化覆盖九城选择与持久化、城市切换隔离、常驻池门槛、来源 fixture、manifest/快照一致性、广州兼容文件、收藏迁移、四级 availability、7 天 fallback、375/390/430/1440 像素视口、键盘与焦点、reduced-motion、转盘结果一致性，以及 serious/critical axe 检查；E2E 还会拦截非预期控制台错误、页面异常和同源资源失败。
 
 生产环境使用 `/guangzhou-weekend-wheel/` 作为 Vite base path。前端通过 `import.meta.env.BASE_URL` 读取 JSON，因此 GitHub Pages 子路径和本地开发路径使用同一套代码。
 
 ## 部署与维护
 
-推送到 `main` 后，GitHub Actions 会依次同步五城活动、校验原子快照、运行测试与构建，并部署到现有 GitHub Pages 地址。不要新建仓库或更换 Pages URL。
+推送到 `main` 后，GitHub Actions 会依次同步九城活动、校验原子快照、运行测试与构建，并部署到现有 GitHub Pages 地址。不要新建仓库或更换 Pages URL。
 
 完整的 Draft PR、CI、合并、Pages 发布、线上验收与回滚步骤见 [`docs/release-checklist.md`](docs/release-checklist.md)。
 
